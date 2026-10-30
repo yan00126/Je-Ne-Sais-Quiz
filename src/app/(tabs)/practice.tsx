@@ -9,6 +9,8 @@ const SKILLS: { title: string; detail: string; icon: ComponentProps<typeof Ionic
   { title: 'Compréhension écrite', detail: 'Lisez un texte, répondez aux questions', icon: 'book-outline', href: '/practice/reading' },
   { title: 'Expression écrite', detail: 'Tâches 1, 2 et 3 avec minuterie et compteur de mots', icon: 'create-outline', href: '/practice/writing' },
   { title: 'Expression orale', detail: 'Tâches 1, 2 et 3 enregistrées', icon: 'mic-outline', href: '/practice/speaking' },
+  { title: 'Répéter après le modèle', detail: 'Écoutez, répétez, comparez votre prononciation', icon: 'repeat-outline', href: '/practice/shadowing' },
+  { title: 'Dialogue guidé', detail: 'Répondez à l’examinateur, avec des indices si vous bloquez', icon: 'chatbubbles-outline', href: '/practice/dialogue' },
 ];
 
 export default function Practice() {
