@@ -1,3 +1,4 @@
+import * as Haptics from 'expo-haptics';
 import type { ReactNode } from 'react';
 import { Pressable, ScrollView, StyleSheet, Text, View, type ViewStyle } from 'react-native';
 
@@ -37,6 +38,22 @@ export function Body({ children, muted }: { children: ReactNode; muted?: boolean
   return <Text style={[styles.body, muted && { color: colors.muted }]}>{children}</Text>;
 }
 
+// Darker shade of a #RRGGBB colour, used for the raised bottom edge of buttons.
+export function shade(hex: string, amount = 0.25) {
+  const n = parseInt(hex.slice(1), 16);
+  const c = (shift: number) => Math.round(((n >> shift) & 255) * (1 - amount));
+  return `rgb(${c(16)}, ${c(8)}, ${c(0)})`;
+}
+
+// Tinted background for outline buttons and grade tiles.
+export function tint(hex: string, alpha = 0.12) {
+  const n = parseInt(hex.slice(1), 16);
+  return `rgba(${(n >> 16) & 255}, ${(n >> 8) & 255}, ${n & 255}, ${alpha})`;
+}
+
+export const tap = () => Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light).catch(() => {});
+
+// A raised button: it has a darker bottom edge and sinks into it when pressed, with a light haptic tap.
 export function Button({
   title,
   onPress,
@@ -54,14 +71,26 @@ export function Button({
   return (
     <Pressable
       accessibilityRole="button"
-      onPress={onPress}
+      accessibilityState={{ disabled }}
+      onPress={() => {
+        tap();
+        onPress();
+      }}
       disabled={disabled}
       style={({ pressed }) => [
         styles.button,
-        { backgroundColor: solid ? color : 'transparent', borderColor: color, opacity: disabled ? 0.4 : pressed ? 0.75 : 1 },
+        {
+          backgroundColor: solid ? color : colors.card,
+          borderColor: solid ? color : tint(color, 0.45),
+          borderBottomColor: solid ? shade(color) : tint(color, 0.7),
+          opacity: disabled ? 0.4 : 1,
+        },
+        pressed && styles.buttonPressed,
       ]}
     >
-      <Text style={[styles.buttonText, { color: solid ? '#fff' : color }]}>{title}</Text>
+      <Text style={[styles.buttonText, { color: solid ? '#fff' : color }]} numberOfLines={1} adjustsFontSizeToFit minimumFontScale={0.8}>
+        {title}
+      </Text>
     </Pressable>
   );
 }
@@ -79,6 +108,16 @@ const styles = StyleSheet.create({
   h1: { fontSize: 26, fontWeight: '700', color: colors.ink },
   h2: { fontSize: 18, fontWeight: '600', color: colors.ink },
   body: { fontSize: 16, lineHeight: 23, color: colors.ink },
-  button: { borderRadius: 10, borderWidth: 1.5, paddingVertical: 12, paddingHorizontal: 16, alignItems: 'center' },
-  buttonText: { fontSize: 16, fontWeight: '600' },
+  button: {
+    minHeight: 50,
+    borderRadius: 14,
+    borderWidth: 1.5,
+    borderBottomWidth: 4,
+    paddingHorizontal: 16,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  // Sinks into its bottom edge when pressed.
+  buttonPressed: { borderBottomWidth: 2, transform: [{ translateY: 2 }] },
+  buttonText: { fontSize: 16, fontWeight: '700' },
 });
