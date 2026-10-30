@@ -1,21 +1,32 @@
-import { useState } from 'react';
+import { useMemo, useState } from 'react';
 import { Pressable, StyleSheet, Text, View } from 'react-native';
 import type { Question } from '../data/comprehension';
 import { Body, Button, Card, colors, H2 } from './ui';
 
 // Multiple-choice questions, one at a time, with the right answer revealed after each pick.
-export function QuizRunner({ questions, onFinish }: { questions: Question[]; onFinish: (score: number) => void }) {
+export function QuizRunner({
+  questions,
+  onAnswer,
+  onFinish,
+}: {
+  questions: Question[];
+  onAnswer?: (question: number, picked: number, correct: boolean) => void;
+  onFinish: (score: number) => void;
+}) {
   const [index, setIndex] = useState(0);
   const [picked, setPicked] = useState<number | null>(null);
   const [score, setScore] = useState(0);
 
   const q = questions[index];
   const last = index === questions.length - 1;
+  // Show choices in random order so the right answer isn't always in the same spot. Indexes stay the original ones.
+  const order = useMemo(() => shuffle(q.choices.map((_, i) => i)), [q]);
 
   function pick(i: number) {
     if (picked !== null) return;
     setPicked(i);
     if (i === q.answer) setScore((s) => s + 1);
+    onAnswer?.(index, i, i === q.answer);
   }
 
   function next() {
@@ -34,20 +45,31 @@ export function QuizRunner({ questions, onFinish }: { questions: Question[]; onF
       </Body>
       <H2>{q.prompt}</H2>
       <View style={{ gap: 8 }}>
-        {q.choices.map((choice, i) => {
+        {order.map((i, position) => {
+          const choice = q.choices[i];
           const revealed = picked !== null;
           const border = revealed && i === q.answer ? colors.green : revealed && i === picked ? colors.red : colors.border;
           return (
             <Pressable key={i} onPress={() => pick(i)} style={[styles.choice, { borderColor: border }]}>
-              <Text style={styles.letter}>{'ABCD'[i]}</Text>
+              <Text style={styles.letter}>{'ABCD'[position]}</Text>
               <Text style={styles.choiceText}>{choice}</Text>
             </Pressable>
           );
         })}
       </View>
+      {picked !== null && q.explanation && <Body muted>{q.explanation}</Body>}
       {picked !== null && <Button title={last ? 'Voir le résultat' : 'Question suivante'} onPress={next} />}
     </Card>
   );
+}
+
+function shuffle<T>(items: T[]): T[] {
+  const a = [...items];
+  for (let i = a.length - 1; i > 0; i--) {
+    const j = Math.floor(Math.random() * (i + 1));
+    [a[i], a[j]] = [a[j], a[i]];
+  }
+  return a;
 }
 
 const styles = StyleSheet.create({

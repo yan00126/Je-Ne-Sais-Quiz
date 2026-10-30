@@ -11,7 +11,8 @@ import { useEffect, useState } from 'react';
 import { Alert, StyleSheet, View } from 'react-native';
 import { Body, Button, Card, colors, H2, Screen } from '../../components/ui';
 import { SPEAKING_TASKS, type SpeakingTask } from '../../data/prompts';
-import { logAttempt } from '../../lib/db';
+import { getItemsDoneToday, logAttempt, pickNextItem } from '../../lib/db';
+import { SPEAKING_MIN_SHARE, speakingCounts } from '../../lib/plan';
 
 function mmss(s: number) {
   const t = Math.max(0, Math.round(s));
@@ -22,6 +23,8 @@ export default function Speaking() {
   const db = useSQLiteContext();
   const [task, setTask] = useState<SpeakingTask>(SPEAKING_TASKS[0]);
   const [uri, setUri] = useState<string | null>(null);
+  const [lastSeconds, setLastSeconds] = useState(0);
+  const [doneToday, setDoneToday] = useState<Set<string>>(new Set());
   const recorder = useAudioRecorder(RecordingPresets.HIGH_QUALITY);
   const state = useAudioRecorderState(recorder, 250);
   const player = useAudioPlayer(null);
@@ -40,12 +43,28 @@ export default function Speaking() {
     recorder.record();
   }
 
+  useEffect(() => {
+    getItemsDoneToday(db, 'speaking').then(setDoneToday);
+    chooseNumber(1);
+  }, [db]);
+
+  // Each task number has several subjects; open the one practised least.
+  async function chooseNumber(n: SpeakingTask['task']) {
+    if (state.isRecording) return;
+    setTask(await pickNextItem(db, 'speaking', SPEAKING_TASKS.filter((t) => t.task === n)));
+    setUri(null);
+  }
+
   async function stop() {
+    const seconds = Math.round(elapsed);
     await recorder.stop();
     // Switch the audio session back to playback so the recording plays through the loudspeaker.
     await setAudioModeAsync({ allowsRecording: false, playsInSilentMode: true });
     setUri(recorder.uri);
-    await logAttempt(db, 'speaking', task.id, 1, 1);
+    setLastSeconds(seconds);
+    const counts = speakingCounts(seconds, task.seconds);
+    await logAttempt(db, 'speaking', task.id, seconds, task.seconds, counts);
+    if (counts) setDoneToday((prev) => new Set(prev).add(task.id));
   }
 
   // The exam stops you at the time limit, so the recorder does too.
@@ -59,20 +78,18 @@ export default function Speaking() {
     player.play();
   }
 
-  function choose(t: SpeakingTask) {
-    if (state.isRecording) return;
-    setTask(t);
-    setUri(null);
-  }
 
   return (
     <Screen>
       <View style={styles.tabs}>
-        {SPEAKING_TASKS.map((t) => (
-          <View key={t.id} style={{ flex: 1 }}>
-            <Button title={`Tâche ${t.task}`} variant={t.id === task.id ? 'solid' : 'outline'} onPress={() => choose(t)} />
-          </View>
-        ))}
+        {([1, 2, 3] as const).map((n) => {
+          const done = SPEAKING_TASKS.some((t) => t.task === n && doneToday.has(t.id));
+          return (
+            <View key={n} style={{ flex: 1 }}>
+              <Button title={`${done ? '✓ ' : ''}Tâche ${n}`} variant={n === task.task ? 'solid' : 'outline'} onPress={() => chooseNumber(n)} />
+            </View>
+          );
+        })}
       </View>
       <Card>
         <H2>
@@ -93,6 +110,12 @@ export default function Speaking() {
       )}
       {uri && !state.isRecording && (
         <>
+          {!speakingCounts(lastSeconds, task.seconds) && (
+            <Body>
+              Trop court pour compter dans le plan du jour : parlez au moins {mmss(task.seconds * SPEAKING_MIN_SHARE)} (vous avez parlé{' '}
+              {mmss(lastSeconds)}).
+            </Body>
+          )}
           <Button title="▶︎ Réécouter ma réponse" variant="outline" onPress={play} />
           <Body muted>
             Réécoutez-vous : avez-vous répondu à toutes les parties de la consigne ? Utilisé des connecteurs ? Parlé sans longues pauses ? La

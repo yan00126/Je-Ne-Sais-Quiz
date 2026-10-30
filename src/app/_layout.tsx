@@ -22,6 +22,7 @@ export default function RootLayout() {
         <Stack.Screen name="practice/reading" options={{ title: 'Compréhension écrite' }} />
         <Stack.Screen name="practice/writing" options={{ title: 'Expression écrite' }} />
         <Stack.Screen name="practice/speaking" options={{ title: 'Expression orale' }} />
+        <Stack.Screen name="mistakes" options={{ title: 'Mes erreurs' }} />
       </Stack>
     </SQLiteProvider>
   );
