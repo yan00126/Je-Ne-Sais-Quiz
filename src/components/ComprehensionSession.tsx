@@ -3,7 +3,8 @@ import { useSQLiteContext } from 'expo-sqlite';
 import { useEffect, useState } from 'react';
 import { View } from 'react-native';
 import type { ComprehensionItem } from '../data/comprehension';
-import { logAttempt, pickNextItem } from '../lib/db';
+import { getTodayCounts, logAttempt, logMistake, pickNextItem } from '../lib/db';
+import { todaysPlan } from '../lib/plan';
 import { QuizRunner } from './QuizRunner';
 import { Body, Button, Card, H2, Screen } from './ui';
 
@@ -17,8 +18,11 @@ export function ComprehensionSession({ skill, items }: { skill: 'listening' | 'r
   const [plays, setPlays] = useState(0);
   const [speaking, setSpeaking] = useState(false);
   const [showScript, setShowScript] = useState(false);
+  const [doneToday, setDoneToday] = useState(0);
+  const target = todaysPlan(new Date()).find((s) => s.skill === skill)?.target ?? 0;
 
   async function load() {
+    setDoneToday((await getTodayCounts(db))[skill] ?? 0);
     setItem(await pickNextItem(db, skill, items));
     setResult(null);
     setPlays(0);
@@ -47,6 +51,7 @@ export function ComprehensionSession({ skill, items }: { skill: 'listening' | 'r
 
   async function finish(score: number) {
     await logAttempt(db, skill, item!.id, score, item!.questions.length);
+    setDoneToday((n) => n + 1);
     setResult(score);
     setShowScript(true);
   }
@@ -55,7 +60,7 @@ export function ComprehensionSession({ skill, items }: { skill: 'listening' | 'r
     <Screen>
       <Card>
         <Body muted>
-          Niveau {item.level} · {item.title}
+          Niveau {item.level} · {item.title} · aujourd'hui {Math.min(doneToday, target)}/{target}
         </Body>
         {skill === 'reading' || showScript ? (
           <Body>{item.text}</Body>
@@ -75,13 +80,21 @@ export function ComprehensionSession({ skill, items }: { skill: 'listening' | 'r
         )}
       </Card>
       {result === null ? (
-        <QuizRunner key={item.id} questions={item.questions} onFinish={finish} />
+        <QuizRunner
+          key={item.id}
+          questions={item.questions}
+          onAnswer={(q, picked, correct) => {
+            if (!correct) logMistake(db, skill, item.id, q, picked);
+          }}
+          onFinish={finish}
+        />
       ) : (
         <Card>
           <H2>
             Résultat : {result}/{item.questions.length}
           </H2>
           {skill === 'listening' && <Body muted>La transcription est affichée ci-dessus.</Body>}
+          {result < item.questions.length && <Body muted>Vos erreurs sont dans Progrès → Mes erreurs.</Body>}
           <Button title="Document suivant" onPress={load} />
         </Card>
       )}

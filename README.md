@@ -8,7 +8,13 @@ Every day it gives you a short plan that covers the four tested skills equally:
 - **Expression écrite**: the three TCF writing tasks, with timer and word counter
 - **Expression orale**: the three TCF speaking tasks, recorded with the exam time limits
 
-Vocabulary is reviewed with spaced repetition (FSRS), and everything is stored on the phone.
+Vocabulary is reviewed with spaced repetition (FSRS). New words start as flashcards; known words come back as
+typed exercises (dictation, meaning → French, fill in the blank) that are graded automatically.
+Wrong answers in listening and reading go to a mistake log with explanations. Everything is stored on the phone.
+
+A step of the daily plan (about an hour) only counts as done after real work: all vocabulary cards reviewed,
+3 listening documents, 3 reading texts, and either one writing task with the minimum word count or
+3 spoken answers of at least 60 % of the time limit. The rules live in `src/lib/plan.ts`.
 
 ## Run it on your iPhone
 

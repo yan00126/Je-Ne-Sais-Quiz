@@ -3,7 +3,8 @@ import { useEffect, useState } from 'react';
 import { StyleSheet, TextInput, View } from 'react-native';
 import { Body, Button, Card, colors, H2, Screen } from '../../components/ui';
 import { WRITING_TASKS, type WritingTask } from '../../data/prompts';
-import { logAttempt, saveWriting } from '../../lib/db';
+import { logAttempt, pickNextItem, saveWriting } from '../../lib/db';
+import { writingCounts } from '../../lib/plan';
 
 // Suggested split of the 60-minute TCF Canada writing test across its three tasks.
 const SUGGESTED_MINUTES: Record<WritingTask['task'], number> = { 1: 10, 2: 20, 3: 30 };
@@ -39,6 +40,15 @@ export default function Writing() {
   const words = countWords(text);
   const inRange = words >= task.minWords && words <= task.maxWords;
 
+  // Each task number has several subjects; open the one practised least.
+  async function chooseNumber(n: WritingTask['task']) {
+    choose(await pickNextItem(db, 'writing', WRITING_TASKS.filter((t) => t.task === n)));
+  }
+
+  useEffect(() => {
+    chooseNumber(1);
+  }, []);
+
   function choose(t: WritingTask) {
     setTask(t);
     setText('');
@@ -49,16 +59,16 @@ export default function Writing() {
 
   async function save() {
     await saveWriting(db, task.id, text, words);
-    await logAttempt(db, 'writing', task.id, inRange ? 1 : 0, 1);
+    await logAttempt(db, 'writing', task.id, inRange ? 1 : 0, 1, writingCounts(words, task.minWords));
     setSaved(true);
   }
 
   return (
     <Screen>
       <View style={styles.tabs}>
-        {WRITING_TASKS.map((t) => (
-          <View key={t.id} style={{ flex: 1 }}>
-            <Button title={`Tâche ${t.task}`} variant={t.id === task.id ? 'solid' : 'outline'} onPress={() => choose(t)} />
+        {([1, 2, 3] as const).map((n) => (
+          <View key={n} style={{ flex: 1 }}>
+            <Button title={`Tâche ${n}`} variant={n === task.task ? 'solid' : 'outline'} onPress={() => chooseNumber(n)} />
           </View>
         ))}
       </View>
@@ -92,6 +102,11 @@ export default function Writing() {
           {saved ? (
             <Card>
               <H2>Texte enregistré</H2>
+              {!writingCounts(words, task.minWords) && (
+                <Body>
+                  Pas compté dans le plan du jour : il faut au moins {task.minWords} mots (vous en avez {words}).
+                </Body>
+              )}
               <Body muted>
                 La correction automatique (grammaire, vocabulaire, niveau estimé) arrive dans la prochaine version. En attendant, relisez-vous :
                 accords, temps des verbes, connecteurs (cependant, en revanche, par conséquent).

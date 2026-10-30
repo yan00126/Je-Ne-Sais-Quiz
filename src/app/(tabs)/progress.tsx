@@ -1,9 +1,9 @@
-import { useFocusEffect } from 'expo-router';
+import { router, useFocusEffect } from 'expo-router';
 import { useSQLiteContext } from 'expo-sqlite';
 import { useCallback, useState } from 'react';
 import { StyleSheet, Text, View } from 'react-native';
-import { Body, Card, colors, H2, Screen } from '../../components/ui';
-import { getDeckStats, getSkillStats, type Skill, type SkillStats } from '../../lib/db';
+import { Body, Button, Card, colors, H2, Screen } from '../../components/ui';
+import { getDeckStats, getOpenMistakes, getSkillStats, type Skill, type SkillStats } from '../../lib/db';
 
 const LABELS: Record<Skill, string> = {
   vocab: 'Vocabulaire',
@@ -17,11 +17,13 @@ export default function Progress() {
   const db = useSQLiteContext();
   const [stats, setStats] = useState<SkillStats[]>([]);
   const [deck, setDeck] = useState({ learned: 0, due: 0, total: 0 });
+  const [mistakes, setMistakes] = useState(0);
 
   useFocusEffect(
     useCallback(() => {
       getSkillStats(db).then(setStats);
       getDeckStats(db).then(setDeck);
+      getOpenMistakes(db).then((m) => setMistakes(m.length));
     }, [db]),
   );
 
@@ -29,6 +31,11 @@ export default function Progress() {
 
   return (
     <Screen>
+      <Card>
+        <H2>Mes erreurs</H2>
+        <Body muted>{mistakes > 0 ? `${mistakes} question(s) à revoir, avec l'explication` : 'Aucune erreur à revoir'}</Body>
+        <Button title="Revoir mes erreurs" variant="outline" onPress={() => router.push('/mistakes')} />
+      </Card>
       <Card>
         <H2>Vocabulaire</H2>
         <Body>
