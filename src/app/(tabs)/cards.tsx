@@ -1,3 +1,4 @@
+import Ionicons from '@expo/vector-icons/Ionicons';
 import { useFocusEffect } from 'expo-router';
 import * as Speech from 'expo-speech';
 import { useSQLiteContext } from 'expo-sqlite';
@@ -82,7 +83,7 @@ function Flashcard({ card, onGrade }: { card: ReviewCard; onGrade: (g: Grade) =>
         {revealed && (
           <View style={{ gap: 8, marginTop: 8 }}>
             <Text style={styles.meaning}>{card.en}</Text>
-            <Body muted>{card.example}</Body>
+            <Example text={card.example} />
           </View>
         )}
       </Card>
@@ -119,6 +120,25 @@ function GradeButton({ label, interval, color, onPress }: { label: string; inter
         {label}
       </Text>
       <Text style={[styles.gradeInterval, { color: shade(color, 0.1) }]}>{interval}</Text>
+    </Pressable>
+  );
+}
+
+// The example sentence, read aloud when tapped.
+function Example({ text }: { text: string }) {
+  if (!text) return null;
+  return (
+    <Pressable
+      accessibilityRole="button"
+      accessibilityLabel={`Écouter : ${text}`}
+      onPress={() => {
+        tap();
+        say(text);
+      }}
+      style={({ pressed }) => [styles.example, pressed && { backgroundColor: tint(colors.blue, 0.08) }]}
+    >
+      <Ionicons name="volume-medium" size={20} color={colors.blue} />
+      <Text style={styles.exampleText}>{text}</Text>
     </Pressable>
   );
 }
@@ -215,7 +235,7 @@ function TypedExercise({
                     : '✗ Pas tout à fait'}
             </Text>
             <Text style={styles.word}>{card.fr}</Text>
-            <Body muted>{card.example}</Body>
+            <Example text={card.example} />
           </View>
         )}
       </Card>
@@ -259,6 +279,8 @@ const styles = StyleSheet.create({
   feedback: { fontSize: 17, fontWeight: '700', textAlign: 'center' },
   hint: { fontSize: 22, fontWeight: '600', letterSpacing: 3, textAlign: 'center', color: colors.amber, fontVariant: ['tabular-nums'] },
   helpRow: { flexDirection: 'row', gap: 8 },
+  example: { flexDirection: 'row', gap: 8, alignItems: 'flex-start', padding: 8, borderRadius: 10 },
+  exampleText: { flex: 1, fontSize: 16, lineHeight: 23, color: colors.muted },
   grades: { flexDirection: 'row', gap: 8, alignItems: 'flex-start' },
   grade: {
     flex: 1,
