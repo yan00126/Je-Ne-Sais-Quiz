@@ -2,8 +2,8 @@ import { useFocusEffect } from 'expo-router';
 import * as Speech from 'expo-speech';
 import { useSQLiteContext } from 'expo-sqlite';
 import { useCallback, useEffect, useState } from 'react';
-import { StyleSheet, Text, TextInput, View } from 'react-native';
-import { Body, Button, Card, colors, H1, Screen } from '../../components/ui';
+import { Pressable, StyleSheet, Text, TextInput, View } from 'react-native';
+import { Body, Button, Card, colors, H1, Screen, shade, tap, tint } from '../../components/ui';
 import { exerciseFor, gradeAnswer, makeCloze, type ExerciseKind, type Verdict } from '../../lib/answer';
 import { getStudyQueue, logAttempt, saveReview, type ReviewCard } from '../../lib/db';
 import { intervalLabel, Rating, review, type Grade } from '../../lib/srs';
@@ -89,16 +89,37 @@ function Flashcard({ card, onGrade }: { card: ReviewCard; onGrade: (g: Grade) =>
       {revealed ? (
         <View style={styles.grades}>
           {GRADES.map(({ grade: g, label, color }) => (
-            <View key={g} style={{ flex: 1, gap: 4 }}>
-              <Button title={label} color={color} onPress={() => onGrade(g)} />
-              <Text style={styles.interval}>{intervalLabel(card, g, now)}</Text>
-            </View>
+            <GradeButton key={g} label={label} interval={intervalLabel(card, g, now)} color={color} onPress={() => onGrade(g)} />
           ))}
         </View>
       ) : (
         <Button title="Afficher la réponse" onPress={() => setRevealed(true)} />
       )}
     </>
+  );
+}
+
+// A same-size tile per grade: the label on one line and, under it, when the card comes back.
+function GradeButton({ label, interval, color, onPress }: { label: string; interval: string; color: string; onPress: () => void }) {
+  return (
+    <Pressable
+      accessibilityRole="button"
+      accessibilityLabel={`${label}, ${interval}`}
+      onPress={() => {
+        tap();
+        onPress();
+      }}
+      style={({ pressed }) => [
+        styles.grade,
+        { backgroundColor: tint(color), borderColor: tint(color, 0.5), borderBottomColor: shade(color, 0) },
+        pressed && { backgroundColor: tint(color, 0.22), borderBottomWidth: 2, transform: [{ translateY: 2 }] },
+      ]}
+    >
+      <Text style={[styles.gradeLabel, { color: shade(color, 0.1) }]} numberOfLines={1} adjustsFontSizeToFit minimumFontScale={0.75}>
+        {label}
+      </Text>
+      <Text style={[styles.gradeInterval, { color: shade(color, 0.1) }]}>{interval}</Text>
+    </Pressable>
   );
 }
 
@@ -193,6 +214,18 @@ const styles = StyleSheet.create({
   sentence: { fontSize: 19, lineHeight: 27, textAlign: 'center', color: colors.ink },
   input: { borderWidth: 2, borderColor: colors.border, borderRadius: 10, padding: 12, fontSize: 20, color: colors.ink, marginTop: 8 },
   feedback: { fontSize: 17, fontWeight: '700', textAlign: 'center' },
-  grades: { flexDirection: 'row', gap: 6 },
-  interval: { textAlign: 'center', color: colors.muted, fontSize: 12 },
+  grades: { flexDirection: 'row', gap: 8, alignItems: 'flex-start' },
+  grade: {
+    flex: 1,
+    height: 68,
+    borderRadius: 14,
+    borderWidth: 1.5,
+    borderBottomWidth: 4,
+    alignItems: 'center',
+    justifyContent: 'center',
+    paddingHorizontal: 4,
+    gap: 2,
+  },
+  gradeLabel: { fontSize: 15, fontWeight: '700' },
+  gradeInterval: { fontSize: 12, fontWeight: '600', opacity: 0.8 },
 });
