@@ -3,10 +3,17 @@ import { SQLiteProvider } from 'expo-sqlite';
 import { StatusBar } from 'expo-status-bar';
 import { colors } from '../components/ui';
 import { DB_NAME, migrate } from '../lib/db';
+import { pruneRecordings } from '../lib/recordings';
 
 export default function RootLayout() {
   return (
-    <SQLiteProvider databaseName={DB_NAME} onInit={migrate}>
+    <SQLiteProvider
+      databaseName={DB_NAME}
+      onInit={async (db) => {
+        await migrate(db);
+        await pruneRecordings(db).catch(() => {});
+      }}
+    >
       <StatusBar style="dark" />
       <Stack
         screenOptions={{
@@ -25,6 +32,7 @@ export default function RootLayout() {
         <Stack.Screen name="practice/shadowing" options={{ title: 'Répéter après le modèle' }} />
         <Stack.Screen name="practice/dialogue" options={{ title: 'Dialogue guidé' }} />
         <Stack.Screen name="mistakes" options={{ title: 'Mes erreurs' }} />
+        <Stack.Screen name="recordings" options={{ title: 'Mes enregistrements' }} />
       </Stack>
     </SQLiteProvider>
   );

@@ -101,7 +101,11 @@ export default function DialogueScreen() {
           </Card>
 
           {rec.isRecording ? (
-            <Button title={`■ Arrêter (${Math.round(rec.seconds)} s)`} color={colors.red} onPress={rec.stop} />
+            <Button
+              title={`■ Arrêter (${Math.round(rec.seconds)} s)`}
+              color={colors.red}
+              onPress={() => rec.stop({ kind: 'dialogue', itemId: dialogue.id, title: `${dialogue.title} · ${current.goal}`, text: current.model })}
+            />
           ) : rec.uri ? (
             <>
               <Card style={styles.model}>
