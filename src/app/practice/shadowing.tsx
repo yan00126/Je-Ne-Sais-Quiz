@@ -91,7 +91,7 @@ export default function Shadowing() {
           </Card>
 
           {rec.isRecording ? (
-            <Button title={`■ Arrêter (${Math.round(rec.seconds)} s)`} color={colors.red} onPress={rec.stop} />
+            <Button title={`■ Arrêter (${Math.round(rec.seconds)} s)`} color={colors.red} onPress={() => rec.stop({ kind: 'shadowing', itemId: dialogue.id, title: dialogue.title, text: line })} />
           ) : (
             <Button title={rec.uri ? '● Répéter encore' : '● Répéter'} color={colors.red} onPress={rec.start} />
           )}
