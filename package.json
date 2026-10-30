@@ -28,7 +28,8 @@
     "start": "expo start",
     "ios": "expo start --ios",
     "typecheck": "tsc --noEmit",
-    "test": "node --test --experimental-strip-types src/**/*.test.ts"
+    "test": "node --test --experimental-strip-types src/**/*.test.ts",
+    "recordings": "node --experimental-strip-types scripts/fetch-recordings.ts"
   },
   "private": true
 }

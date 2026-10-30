@@ -1,12 +1,13 @@
 import Ionicons from '@expo/vector-icons/Ionicons';
 import { useFocusEffect } from 'expo-router';
-import * as Speech from 'expo-speech';
 import { useSQLiteContext } from 'expo-sqlite';
 import { useCallback, useEffect, useState } from 'react';
-import { Pressable, StyleSheet, Text, TextInput, View } from 'react-native';
+import { Linking, Pressable, StyleSheet, Text, TextInput, View } from 'react-native';
 import { Body, Button, Card, colors, H1, Screen, shade, tap, tint } from '../../components/ui';
+import { REAL_EXAMPLES, WORD_AUDIO, type Recording } from '../../data/recordings';
 import { exerciseFor, gradeAnswer, hint, makeCloze, type ExerciseKind, type Verdict } from '../../lib/answer';
 import { getStudyQueue, logAttempt, saveReview, type ReviewCard } from '../../lib/db';
+import { play } from '../../lib/audio';
 import { intervalLabel, Rating, review, type Grade } from '../../lib/srs';
 
 const GRADES: { grade: Grade; label: string; color: string }[] = [
@@ -16,7 +17,8 @@ const GRADES: { grade: Grade; label: string; color: string }[] = [
   { grade: Rating.Easy, label: 'Facile', color: colors.green },
 ];
 
-const say = (text: string) => Speech.speak(text, { language: 'fr-FR' });
+// The word itself, in a human voice when Lingua Libre has a recording of it.
+const sayWord = (card: ReviewCard) => play(card.fr, WORD_AUDIO[card.id]?.url);
 
 export default function Cards() {
   const db = useSQLiteContext();
@@ -79,11 +81,12 @@ function Flashcard({ card, onGrade }: { card: ReviewCard; onGrade: (g: Grade) =>
       <Card style={styles.flashcard}>
         <Text style={styles.label}>Nouveau mot</Text>
         <Text style={styles.word}>{card.fr}</Text>
-        <Button title="🔊 Écouter" variant="outline" onPress={() => say(card.fr)} />
+        <Button title="🔊 Écouter" variant="outline" onPress={() => sayWord(card)} />
+        {WORD_AUDIO[card.id] && <Credit rec={WORD_AUDIO[card.id]} />}
         {revealed && (
           <View style={{ gap: 8, marginTop: 8 }}>
             <Text style={styles.meaning}>{card.en}</Text>
-            <Example text={card.example} />
+            <Example card={card} />
           </View>
         )}
       </Card>
@@ -124,22 +127,40 @@ function GradeButton({ label, interval, color, onPress }: { label: string; inter
   );
 }
 
-// The example sentence, read aloud when tapped.
-function Example({ text }: { text: string }) {
+// The example sentence, read aloud when tapped: a real Tatoeba sentence with a human recording
+// when there is one, otherwise the deck's own sentence in the device voice.
+function Example({ card }: { card: ReviewCard }) {
+  const real = REAL_EXAMPLES[card.id];
+  const text = real?.fr ?? card.example;
   if (!text) return null;
   return (
-    <Pressable
-      accessibilityRole="button"
-      accessibilityLabel={`Écouter : ${text}`}
-      onPress={() => {
-        tap();
-        say(text);
-      }}
-      style={({ pressed }) => [styles.example, pressed && { backgroundColor: tint(colors.blue, 0.08) }]}
-    >
-      <Ionicons name="volume-medium" size={20} color={colors.blue} />
-      <Text style={styles.exampleText}>{text}</Text>
-    </Pressable>
+    <View>
+      <Pressable
+        accessibilityRole="button"
+        accessibilityLabel={`Écouter : ${text}`}
+        onPress={() => {
+          tap();
+          play(text, real?.audio.url);
+        }}
+        style={({ pressed }) => [styles.example, pressed && { backgroundColor: tint(colors.blue, 0.08) }]}
+      >
+        <Ionicons name={real ? 'mic' : 'volume-medium'} size={20} color={colors.blue} />
+        <View style={{ flex: 1, gap: 2 }}>
+          <Text style={styles.exampleText}>{text}</Text>
+          {real?.en && <Text style={styles.exampleTranslation}>{real.en}</Text>}
+        </View>
+      </Pressable>
+      {real && <Credit rec={real.audio} />}
+    </View>
+  );
+}
+
+// Who recorded it and under which licence, linking to the source page. The licences require this.
+function Credit({ rec }: { rec: Recording }) {
+  return (
+    <Text style={styles.credit} onPress={() => Linking.openURL(rec.page)} accessibilityRole="link">
+      Voix : {rec.author} · {rec.source} · {rec.license}
+    </Text>
   );
 }
 
@@ -173,19 +194,19 @@ function TypedExercise({
   const maxHints = Math.max(...hintBase.split(/[\s'’-]+/).map((w) => w.length)) - 1;
 
   useEffect(() => {
-    if (kind === 'dictation') say(card.fr);
+    if (kind === 'dictation') sayWord(card);
   }, []);
 
   function check() {
     const v = gradeAnswer(typed, expected);
     setVerdict(v);
-    if (v !== 'correct') say(card.fr);
+    if (v !== 'correct') sayWord(card);
   }
 
   function giveUp() {
     setGaveUp(true);
     setVerdict('wrong');
-    say(card.fr);
+    sayWord(card);
   }
 
   // Not knowing is an "Again"; needing a hint makes a right answer count as "Hard" instead of "Good".
@@ -199,7 +220,7 @@ function TypedExercise({
     <>
       <Card style={styles.flashcard}>
         <Text style={styles.label}>{PROMPTS[kind]}</Text>
-        {kind === 'dictation' && <Button title="🔊 Réécouter" variant="outline" onPress={() => say(card.fr)} />}
+        {kind === 'dictation' && <Button title="🔊 Réécouter" variant="outline" onPress={() => sayWord(card)} />}
         {kind === 'meaning' && <Text style={styles.meaning}>{card.en}</Text>}
         {kind === 'cloze' && cloze && (
           <>
@@ -235,7 +256,7 @@ function TypedExercise({
                     : '✗ Pas tout à fait'}
             </Text>
             <Text style={styles.word}>{card.fr}</Text>
-            <Example text={card.example} />
+            <Example card={card} />
           </View>
         )}
       </Card>
@@ -280,7 +301,9 @@ const styles = StyleSheet.create({
   hint: { fontSize: 22, fontWeight: '600', letterSpacing: 3, textAlign: 'center', color: colors.amber, fontVariant: ['tabular-nums'] },
   helpRow: { flexDirection: 'row', gap: 8 },
   example: { flexDirection: 'row', gap: 8, alignItems: 'flex-start', padding: 8, borderRadius: 10 },
-  exampleText: { flex: 1, fontSize: 16, lineHeight: 23, color: colors.muted },
+  exampleText: { fontSize: 16, lineHeight: 23, color: colors.muted },
+  exampleTranslation: { fontSize: 14, lineHeight: 20, color: colors.muted, fontStyle: 'italic', opacity: 0.8 },
+  credit: { fontSize: 11, color: colors.muted, textAlign: 'center', opacity: 0.8 },
   grades: { flexDirection: 'row', gap: 8, alignItems: 'flex-start' },
   grade: {
     flex: 1,
