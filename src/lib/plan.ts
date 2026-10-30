@@ -25,7 +25,7 @@ export function todaysPlan(date: Date): Step[] {
     { skill: 'reading', title: 'Compréhension écrite', detail: '3 textes', minutes: 18, target: 3, href: '/practice/reading' },
     writingDay
       ? { skill: 'writing', title: 'Expression écrite', detail: '1 tâche, nombre de mots minimum atteint', minutes: 25, target: 1, href: '/practice/writing' }
-      : { skill: 'speaking', title: 'Expression orale', detail: '3 réponses, au moins 60 % du temps chacune', minutes: 20, target: 3, href: '/practice/speaking' },
+      : { skill: 'speaking', title: 'Expression orale', detail: '3 séances : tâche enregistrée (60 % du temps au moins), dialogue guidé ou répétition', minutes: 20, target: 3, href: '/practice/speaking' },
   ];
 }
 
