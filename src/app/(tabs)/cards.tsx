@@ -4,7 +4,7 @@ import { useSQLiteContext } from 'expo-sqlite';
 import { useCallback, useEffect, useState } from 'react';
 import { Pressable, StyleSheet, Text, TextInput, View } from 'react-native';
 import { Body, Button, Card, colors, H1, Screen, shade, tap, tint } from '../../components/ui';
-import { exerciseFor, gradeAnswer, makeCloze, type ExerciseKind, type Verdict } from '../../lib/answer';
+import { exerciseFor, gradeAnswer, hint, makeCloze, type ExerciseKind, type Verdict } from '../../lib/answer';
 import { getStudyQueue, logAttempt, saveReview, type ReviewCard } from '../../lib/db';
 import { intervalLabel, Rating, review, type Grade } from '../../lib/srs';
 
@@ -145,7 +145,12 @@ function TypedExercise({
 }) {
   const [typed, setTyped] = useState('');
   const [verdict, setVerdict] = useState<Verdict | null>(null);
+  const [hints, setHints] = useState(0);
+  const [gaveUp, setGaveUp] = useState(false);
   const expected = kind === 'cloze' && cloze ? cloze.answer : card.fr;
+  // What the hint spells out: the first form of the answer, without grammar notes like "(+ subj.)".
+  const hintBase = expected.split('/')[0].replace(/\(.*?\)/g, '').trim();
+  const maxHints = Math.max(...hintBase.split(/[\s'’-]+/).map((w) => w.length)) - 1;
 
   useEffect(() => {
     if (kind === 'dictation') say(card.fr);
@@ -155,6 +160,19 @@ function TypedExercise({
     const v = gradeAnswer(typed, expected);
     setVerdict(v);
     if (v !== 'correct') say(card.fr);
+  }
+
+  function giveUp() {
+    setGaveUp(true);
+    setVerdict('wrong');
+    say(card.fr);
+  }
+
+  // Not knowing is an "Again"; needing a hint makes a right answer count as "Hard" instead of "Good".
+  function grade(): Grade {
+    if (gaveUp) return Rating.Again;
+    if (verdict === 'correct' && hints > 0) return Rating.Hard;
+    return VERDICT_GRADE[verdict!];
   }
 
   return (
@@ -169,23 +187,32 @@ function TypedExercise({
             <Body muted>({card.en})</Body>
           </>
         )}
-        <TextInput
-          style={[styles.input, verdict && { borderColor: verdict === 'correct' ? colors.green : verdict === 'accents' ? colors.amber : colors.red }]}
-          value={typed}
-          onChangeText={setTyped}
-          editable={verdict === null}
-          autoCapitalize="none"
-          autoCorrect={false}
-          spellCheck={false}
-          autoFocus
-          placeholder="Tapez votre réponse"
-          returnKeyType="done"
-          onSubmitEditing={() => typed.trim() && verdict === null && check()}
-        />
+        {!gaveUp && (
+          <TextInput
+            style={[styles.input, verdict && { borderColor: verdict === 'correct' ? colors.green : verdict === 'accents' ? colors.amber : colors.red }]}
+            value={typed}
+            onChangeText={setTyped}
+            editable={verdict === null}
+            autoCapitalize="none"
+            autoCorrect={false}
+            spellCheck={false}
+            autoFocus
+            placeholder="Tapez votre réponse"
+            returnKeyType="done"
+            onSubmitEditing={() => typed.trim() && verdict === null && check()}
+          />
+        )}
+        {hints > 0 && verdict === null && <Text style={styles.hint}>{hint(hintBase, hints)}</Text>}
         {verdict && (
           <View style={{ gap: 6 }}>
             <Text style={[styles.feedback, { color: verdict === 'correct' ? colors.green : verdict === 'accents' ? colors.amber : colors.red }]}>
-              {verdict === 'correct' ? '✓ Correct !' : verdict === 'accents' ? 'Presque : attention aux accents' : '✗ Pas tout à fait'}
+              {gaveUp
+                ? 'La réponse :'
+                : verdict === 'correct'
+                  ? '✓ Correct !'
+                  : verdict === 'accents'
+                    ? 'Presque : attention aux accents'
+                    : '✗ Pas tout à fait'}
             </Text>
             <Text style={styles.word}>{card.fr}</Text>
             <Body muted>{card.example}</Body>
@@ -193,11 +220,27 @@ function TypedExercise({
         )}
       </Card>
       {verdict === null ? (
-        <Button title="Vérifier" disabled={!typed.trim()} onPress={check} />
+        <View style={{ gap: 8 }}>
+          <Button title="Vérifier" disabled={!typed.trim()} onPress={check} />
+          <View style={styles.helpRow}>
+            <View style={{ flex: 1 }}>
+              <Button
+                title="💡 Indice"
+                variant="outline"
+                color={colors.amber}
+                disabled={hints >= maxHints}
+                onPress={() => setHints((n) => n + 1)}
+              />
+            </View>
+            <View style={{ flex: 1 }}>
+              <Button title="Je ne sais pas" variant="outline" color={colors.muted} onPress={giveUp} />
+            </View>
+          </View>
+        </View>
       ) : (
         <View style={{ gap: 8 }}>
-          <Button title="Continuer" onPress={() => onGrade(VERDICT_GRADE[verdict])} />
-          {verdict !== 'correct' && (
+          <Button title="Continuer" onPress={() => onGrade(grade())} />
+          {verdict !== 'correct' && !gaveUp && (
             <Button title="J'avais raison (synonyme)" variant="outline" onPress={() => onGrade(Rating.Good)} />
           )}
         </View>
@@ -214,6 +257,8 @@ const styles = StyleSheet.create({
   sentence: { fontSize: 19, lineHeight: 27, textAlign: 'center', color: colors.ink },
   input: { borderWidth: 2, borderColor: colors.border, borderRadius: 10, padding: 12, fontSize: 20, color: colors.ink, marginTop: 8 },
   feedback: { fontSize: 17, fontWeight: '700', textAlign: 'center' },
+  hint: { fontSize: 22, fontWeight: '600', letterSpacing: 3, textAlign: 'center', color: colors.amber, fontVariant: ['tabular-nums'] },
+  helpRow: { flexDirection: 'row', gap: 8 },
   grades: { flexDirection: 'row', gap: 8, alignItems: 'flex-start' },
   grade: {
     flex: 1,

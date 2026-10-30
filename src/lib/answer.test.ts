@@ -1,6 +1,6 @@
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
-import { exerciseFor, gradeAnswer, headword, makeCloze } from './answer.ts';
+import { exerciseFor, gradeAnswer, headword, hint, makeCloze } from './answer.ts';
 
 test('new words are flashcards, then exercises rotate', () => {
   assert.equal(exerciseFor(0, true), 'flashcard');
@@ -30,4 +30,10 @@ test('cloze blanks the word inside its example', () => {
   assert.equal(c?.answer, 'logement');
   assert.match(c!.sentence, /Trouver un _{8} à Montréal/);
   assert.equal(makeCloze('remplir un formulaire', 'Vous devez remplir ce formulaire.'), null);
+});
+
+test('hints reveal more letters each time', () => {
+  assert.equal(hint('un logement', 1), 'u_ l_______');
+  assert.equal(hint('s’habituer à', 2), 's’ha______ à');
+  assert.equal(hint('logement', 20), 'logement');
 });

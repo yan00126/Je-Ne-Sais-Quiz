@@ -56,3 +56,12 @@ export function makeCloze(fr: string, example: string): { sentence: string; answ
   const answer = example.slice(i, i + word.length);
   return { sentence: example.slice(0, i) + '_'.repeat(Math.max(4, word.length)) + example.slice(i + word.length), answer };
 }
+
+// A hint that reveals the first `letters` letters of each word, e.g. hint("un logement", 1) → "u_ l_______".
+// Spaces, apostrophes and hyphens stay visible so the shape of the answer shows.
+export function hint(answer: string, letters: number) {
+  return answer
+    .split(/([\s'’-]+)/)
+    .map((part) => (/^[\s'’-]+$/.test(part) ? part : part.slice(0, letters) + '_'.repeat(Math.max(0, part.length - letters))))
+    .join('');
+}
