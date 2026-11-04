@@ -26,7 +26,9 @@ A step of the daily plan (about an hour) only counts as done after real work: al
 
 ```bash
 npm run typecheck   # TypeScript
-npm test            # unit tests (node --test)
+npm test            # unit tests (node --test, needs Node 22+)
 ```
+
+Tests sit next to the code they check (`*.test.ts`). `src/data/content.test.ts` checks the built-in content: unique ids, every question has a valid answer, every tâche is covered. Run `npm test` after adding words or questions. Once `.github/workflows/test.yml` is added, GitHub runs the type check and the tests on every pull request and shows a red ✗ if something broke.
 
 Code lives in `src/`: screens in `src/app/` (Expo Router), content in `src/data/`, storage and scheduling in `src/lib/`.

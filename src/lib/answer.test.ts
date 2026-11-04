@@ -37,3 +37,8 @@ test('hints reveal more letters each time', () => {
   assert.equal(hint('s’habituer à', 2), 's’ha______ à');
   assert.equal(hint('logement', 20), 'logement');
 });
+
+test('typing both forms of a word, as shown on the card, is correct', () => {
+  assert.equal(gradeAnswer('un citoyen / une citoyenne', 'un citoyen / une citoyenne'), 'correct');
+  assert.equal(gradeAnswer('un citoyen/une citoyenne', 'un citoyen / une citoyenne'), 'correct');
+});

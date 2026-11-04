@@ -29,7 +29,8 @@ export function headword(fr: string) {
 
 // Accepted spellings: the full entry, each side of "un citoyen / une citoyenne", with or without the article.
 function accepted(fr: string) {
-  return fr.split('/').flatMap((part) => {
+  const whole = normalize(fr).replace(/\s*\/\s*/g, ' / ');
+  return [whole, ...fr.split('/')].flatMap((part) => {
     const n = normalize(part);
     return [n, n.replace(ARTICLE, '')];
   });
@@ -38,7 +39,7 @@ function accepted(fr: string) {
 export type Verdict = 'correct' | 'accents' | 'wrong';
 
 export function gradeAnswer(typed: string, expected: string): Verdict {
-  const t = normalize(typed);
+  const t = normalize(typed).replace(/\s*\/\s*/g, ' / ');
   if (!t) return 'wrong';
   const options = accepted(expected);
   if (options.includes(t) || options.includes(t.replace(ARTICLE, ''))) return 'correct';
