@@ -14,6 +14,7 @@ import { SPEAKING_TASKS, type SpeakingTask } from '../../data/prompts';
 import { getItemsDoneToday, logAttempt, pickNextItem } from '../../lib/db';
 import { saveRecording } from '../../lib/recordings';
 import { SPEAKING_MIN_SHARE, speakingCounts } from '../../lib/plan';
+import { useStudyTimer } from '../../lib/useStudyTimer';
 
 function mmss(s: number) {
   const t = Math.max(0, Math.round(s));
@@ -28,6 +29,7 @@ export default function Speaking() {
   const [doneToday, setDoneToday] = useState<Set<string>>(new Set());
   const recorder = useAudioRecorder(RecordingPresets.HIGH_QUALITY);
   const state = useAudioRecorderState(recorder, 250);
+  useStudyTimer('speaking', state.isRecording);
   const player = useAudioPlayer(null);
 
   const elapsed = state.durationMillis / 1000;

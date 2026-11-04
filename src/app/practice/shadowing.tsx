@@ -5,6 +5,7 @@ import { TaskTabs } from '../../components/TaskTabs';
 import { Body, Button, Card, colors, H2, Screen } from '../../components/ui';
 import { DIALOGUES, shadowingLines, type Dialogue } from '../../data/dialogues';
 import { getItemsDoneToday, logAttempt, pickNextItem } from '../../lib/db';
+import { useStudyTimer } from '../../lib/useStudyTimer';
 import { speakFr, useRecording } from '../../lib/useRecording';
 
 const itemId = (d: Dialogue) => `sh-${d.id}`;
@@ -18,6 +19,7 @@ export default function Shadowing() {
   const [finished, setFinished] = useState(false);
   const [doneToday, setDoneToday] = useState<Set<string>>(new Set());
   const rec = useRecording();
+  useStudyTimer('speaking', rec.isRecording);
 
   const lines = shadowingLines(dialogue);
   const line = lines[index];

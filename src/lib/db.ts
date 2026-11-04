@@ -1,6 +1,7 @@
 import type { SQLiteDatabase } from 'expo-sqlite';
 import { STARTER_VOCAB, type VocabItem } from '../data/vocab';
 import { newCardRow, type CardRow } from './srs';
+import { dayKey, wordTiers, type Session, type WordTiers } from './stats';
 
 export const DB_NAME = 'jenesaisquiz.db';
 export const NEW_CARDS_PER_DAY = 15;
@@ -87,6 +88,20 @@ export async function migrate(db: SQLiteDatabase) {
       );
       CREATE INDEX IF NOT EXISTS recordings_created ON recordings (created_at);
       PRAGMA user_version = 3;
+    `);
+  }
+  if (user_version < 4) {
+    // Active study time, saved in chunks of about a minute while a practice screen is open.
+    // Time before this version wasn't recorded, so totals start from the update.
+    await db.execAsync(`
+      CREATE TABLE IF NOT EXISTS study_sessions (
+        id INTEGER PRIMARY KEY AUTOINCREMENT,
+        skill TEXT NOT NULL,
+        started_at INTEGER NOT NULL,
+        seconds REAL NOT NULL
+      );
+      CREATE INDEX IF NOT EXISTS study_sessions_started ON study_sessions (started_at);
+      PRAGMA user_version = 4;
     `);
   }
   await seedCards(db);
@@ -235,4 +250,31 @@ export async function pickNextItem<T extends { id: string }>(db: SQLiteDatabase,
   );
   const counts = new Map(rows.map((r) => [r.item_id, r.n]));
   return items.reduce((best, item) => ((counts.get(item.id) ?? 0) < (counts.get(best.id) ?? 0) ? item : best));
+}
+
+export async function logStudyTime(db: SQLiteDatabase, skill: Skill, startedAt: number, seconds: number) {
+  await db.runAsync('INSERT INTO study_sessions (skill, started_at, seconds) VALUES (?, ?, ?)', skill, startedAt, seconds);
+}
+
+export async function getStudySessions(db: SQLiteDatabase): Promise<Session[]> {
+  return db.getAllAsync<Session>('SELECT skill, started_at, seconds FROM study_sessions');
+}
+
+// Every day with study time or a finished exercise. Exercises go back to the first version,
+// so the streak counts days from before study time was recorded.
+export async function getActiveDays(db: SQLiteDatabase): Promise<Set<string>> {
+  const rows = await db.getAllAsync<{ t: number }>(
+    'SELECT started_at AS t FROM study_sessions UNION ALL SELECT created_at AS t FROM attempts WHERE counts = 1',
+  );
+  return new Set(rows.map((r) => dayKey(r.t)));
+}
+
+export async function getWordTiers(db: SQLiteDatabase): Promise<WordTiers> {
+  return wordTiers(await db.getAllAsync<{ reps: number; state: number; stability: number }>('SELECT reps, state, stability FROM cards'));
+}
+
+// New words first studied in the last 7 days.
+export async function newWordsThisWeek(db: SQLiteDatabase) {
+  const row = await db.getFirstAsync<{ n: number }>('SELECT COUNT(*) AS n FROM cards WHERE introduced_at >= ?', startOfToday() - 6 * 86_400_000);
+  return row?.n ?? 0;
 }
