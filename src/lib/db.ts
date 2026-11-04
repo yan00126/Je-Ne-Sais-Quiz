@@ -70,6 +70,25 @@ export async function migrate(db: SQLiteDatabase) {
       PRAGMA user_version = 2;
     `);
   }
+  if (user_version < 3) {
+    // Your own speaking recordings. file is a name inside the recordings folder, not a full path:
+    // iOS moves the app's folder on updates. text is the model sentence or the task prompt.
+    await db.execAsync(`
+      CREATE TABLE IF NOT EXISTS recordings (
+        id INTEGER PRIMARY KEY AUTOINCREMENT,
+        file TEXT NOT NULL,
+        kind TEXT NOT NULL,
+        item_id TEXT NOT NULL,
+        title TEXT NOT NULL,
+        text TEXT NOT NULL,
+        seconds REAL NOT NULL,
+        created_at INTEGER NOT NULL,
+        starred INTEGER NOT NULL DEFAULT 0
+      );
+      CREATE INDEX IF NOT EXISTS recordings_created ON recordings (created_at);
+      PRAGMA user_version = 3;
+    `);
+  }
   await seedCards(db);
 }
 

@@ -37,6 +37,11 @@ export default function Progress() {
         <Button title="Revoir mes erreurs" variant="outline" onPress={() => router.push('/mistakes')} />
       </Card>
       <Card>
+        <H2>Mes enregistrements</H2>
+        <Body muted>Réécoutez vos réponses orales et comparez vos prises d’une même phrase.</Body>
+        <Button title="Écouter mes enregistrements" variant="outline" onPress={() => router.push('/recordings')} />
+      </Card>
+      <Card>
         <H2>Vocabulaire</H2>
         <Body>
           {deck.learned ?? 0} mot(s) appris sur {deck.total} · {deck.due ?? 0} à revoir

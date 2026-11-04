@@ -12,6 +12,7 @@ import { Alert, StyleSheet, View } from 'react-native';
 import { Body, Button, Card, colors, H2, Screen } from '../../components/ui';
 import { SPEAKING_TASKS, type SpeakingTask } from '../../data/prompts';
 import { getItemsDoneToday, logAttempt, pickNextItem } from '../../lib/db';
+import { saveRecording } from '../../lib/recordings';
 import { SPEAKING_MIN_SHARE, speakingCounts } from '../../lib/plan';
 
 function mmss(s: number) {
@@ -62,6 +63,10 @@ export default function Speaking() {
     await setAudioModeAsync({ allowsRecording: false, playsInSilentMode: true });
     setUri(recorder.uri);
     setLastSeconds(seconds);
+    if (recorder.uri) {
+      const meta = { kind: 'exam' as const, itemId: task.id, title: `Tâche ${task.task} · ${task.title}`, text: task.prompt };
+      saveRecording(db, recorder.uri, seconds, meta).then(setUri, () => {});
+    }
     const counts = speakingCounts(seconds, task.seconds);
     await logAttempt(db, 'speaking', task.id, seconds, task.seconds, counts);
     if (counts) setDoneToday((prev) => new Set(prev).add(task.id));
