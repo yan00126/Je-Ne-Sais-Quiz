@@ -7,7 +7,9 @@ import { Pressable, StyleSheet, Text, TextInput, View } from 'react-native';
 import { Body, Button, Card, colors, H1, Screen, shade, tap, tint } from '../../components/ui';
 import { exerciseFor, gradeAnswer, hint, makeCloze, type ExerciseKind, type Verdict } from '../../lib/answer';
 import { getStudyQueue, logAttempt, saveReview, type ReviewCard } from '../../lib/db';
+import { markActive } from '../../lib/activity';
 import { intervalLabel, Rating, review, type Grade } from '../../lib/srs';
+import { useStudyTimer } from '../../lib/useStudyTimer';
 
 const GRADES: { grade: Grade; label: string; color: string }[] = [
   { grade: Rating.Again, label: 'À revoir', color: colors.red },
@@ -20,6 +22,7 @@ const say = (text: string) => Speech.speak(text, { language: 'fr-FR' });
 
 export default function Cards() {
   const db = useSQLiteContext();
+  useStudyTimer('vocab');
   const [queue, setQueue] = useState<ReviewCard[] | null>(null);
   const [reviewed, setReviewed] = useState(0);
 
@@ -211,7 +214,10 @@ function TypedExercise({
           <TextInput
             style={[styles.input, verdict && { borderColor: verdict === 'correct' ? colors.green : verdict === 'accents' ? colors.amber : colors.red }]}
             value={typed}
-            onChangeText={setTyped}
+            onChangeText={(t) => {
+              markActive();
+              setTyped(t);
+            }}
             editable={verdict === null}
             autoCapitalize="none"
             autoCorrect={false}

@@ -3,7 +3,19 @@ import { useSQLiteContext } from 'expo-sqlite';
 import { useCallback, useState } from 'react';
 import { StyleSheet, Text, View } from 'react-native';
 import { Body, Button, Card, colors, H2, Screen } from '../../components/ui';
-import { getDeckStats, getOpenMistakes, getSkillStats, type Skill, type SkillStats } from '../../lib/db';
+import { SkillTimeCard, StudyTimeCard, WordsCard } from '../../components/StatsCards';
+import {
+  getActiveDays,
+  getDeckStats,
+  getOpenMistakes,
+  getSkillStats,
+  getStudySessions,
+  getWordTiers,
+  newWordsThisWeek,
+  type Skill,
+  type SkillStats,
+} from '../../lib/db';
+import { lastDays, minutesBySkill, streak, type Session, type WordTiers } from '../../lib/stats';
 
 const LABELS: Record<Skill, string> = {
   vocab: 'Vocabulaire',
@@ -18,19 +30,31 @@ export default function Progress() {
   const [stats, setStats] = useState<SkillStats[]>([]);
   const [deck, setDeck] = useState({ learned: 0, due: 0, total: 0 });
   const [mistakes, setMistakes] = useState(0);
+  const [sessions, setSessions] = useState<Session[]>([]);
+  const [activeDays, setActiveDays] = useState<Set<string>>(new Set());
+  const [tiers, setTiers] = useState<WordTiers>({ unseen: 0, learning: 0, known: 0, mastered: 0 });
+  const [newWords, setNewWords] = useState(0);
 
   useFocusEffect(
     useCallback(() => {
       getSkillStats(db).then(setStats);
       getDeckStats(db).then(setDeck);
       getOpenMistakes(db).then((m) => setMistakes(m.length));
+      getStudySessions(db).then(setSessions);
+      getActiveDays(db).then(setActiveDays);
+      getWordTiers(db).then(setTiers);
+      newWordsThisWeek(db).then(setNewWords);
     }, [db]),
   );
 
   const bySkill = new Map(stats.map((s) => [s.skill, s]));
+  const now = Date.now();
 
   return (
     <Screen>
+      <StudyTimeCard days={lastDays(sessions, now)} streak={streak(activeDays, now)} tracking={sessions.length > 0} />
+      <WordsCard tiers={tiers} newThisWeek={newWords} due={deck.due ?? 0} />
+      <SkillTimeCard rows={minutesBySkill(sessions)} />
       <Card>
         <H2>Mes erreurs</H2>
         <Body muted>{mistakes > 0 ? `${mistakes} question(s) à revoir, avec l'explication` : 'Aucune erreur à revoir'}</Body>
@@ -40,12 +64,6 @@ export default function Progress() {
         <H2>Mes enregistrements</H2>
         <Body muted>Réécoutez vos réponses orales et comparez vos prises d’une même phrase.</Body>
         <Button title="Écouter mes enregistrements" variant="outline" onPress={() => router.push('/recordings')} />
-      </Card>
-      <Card>
-        <H2>Vocabulaire</H2>
-        <Body>
-          {deck.learned ?? 0} mot(s) appris sur {deck.total} · {deck.due ?? 0} à revoir
-        </Body>
       </Card>
       {(['listening', 'reading', 'writing', 'speaking'] as Skill[]).map((skill) => {
         const s = bySkill.get(skill);

@@ -6,6 +6,7 @@ import { TaskTabs } from '../../components/TaskTabs';
 import { Body, Button, Card, colors, H2, Screen, tint } from '../../components/ui';
 import { DIALOGUES, type Dialogue } from '../../data/dialogues';
 import { getItemsDoneToday, logAttempt, pickNextItem } from '../../lib/db';
+import { useStudyTimer } from '../../lib/useStudyTimer';
 import { speakFr, useRecording } from '../../lib/useRecording';
 
 // One line of the conversation so far.
@@ -22,6 +23,7 @@ export default function DialogueScreen() {
   const [finished, setFinished] = useState(false);
   const [doneToday, setDoneToday] = useState<Set<string>>(new Set());
   const rec = useRecording();
+  useStudyTimer('speaking', rec.isRecording);
 
   const current = dialogue.turns[turn];
 

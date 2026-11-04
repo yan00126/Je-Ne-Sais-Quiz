@@ -5,6 +5,7 @@ import { View } from 'react-native';
 import type { ComprehensionItem } from '../data/comprehension';
 import { getTodayCounts, logAttempt, logMistake, pickNextItem } from '../lib/db';
 import { todaysPlan } from '../lib/plan';
+import { useStudyTimer } from '../lib/useStudyTimer';
 import { QuizRunner } from './QuizRunner';
 import { Body, Button, Card, H2, Screen } from './ui';
 
@@ -13,6 +14,7 @@ const MAX_PLAYS = 2;
 
 export function ComprehensionSession({ skill, items }: { skill: 'listening' | 'reading'; items: ComprehensionItem[] }) {
   const db = useSQLiteContext();
+  useStudyTimer(skill);
   const [item, setItem] = useState<ComprehensionItem | null>(null);
   const [result, setResult] = useState<number | null>(null);
   const [plays, setPlays] = useState(0);

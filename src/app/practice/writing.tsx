@@ -4,7 +4,9 @@ import { StyleSheet, TextInput, View } from 'react-native';
 import { Body, Button, Card, colors, H2, Screen } from '../../components/ui';
 import { WRITING_TASKS, type WritingTask } from '../../data/prompts';
 import { logAttempt, pickNextItem, saveWriting } from '../../lib/db';
+import { markActive } from '../../lib/activity';
 import { writingCounts } from '../../lib/plan';
+import { useStudyTimer } from '../../lib/useStudyTimer';
 
 // Suggested split of the 60-minute TCF Canada writing test across its three tasks.
 const SUGGESTED_MINUTES: Record<WritingTask['task'], number> = { 1: 10, 2: 20, 3: 30 };
@@ -30,6 +32,7 @@ function mmss(s: number) {
 
 export default function Writing() {
   const db = useSQLiteContext();
+  useStudyTimer('writing');
   const [task, setTask] = useState<WritingTask>(WRITING_TASKS[0]);
   const [text, setText] = useState('');
   const [started, setStarted] = useState(false);
@@ -93,7 +96,10 @@ export default function Writing() {
             style={styles.input}
             multiline
             value={text}
-            onChangeText={setText}
+            onChangeText={(t) => {
+              markActive();
+              setText(t);
+            }}
             editable={!saved}
             placeholder="Écrivez votre réponse ici…"
             autoCorrect={false}
