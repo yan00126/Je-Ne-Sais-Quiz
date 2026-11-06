@@ -1,13 +1,16 @@
 import { Stack } from 'expo-router';
 import { SQLiteProvider } from 'expo-sqlite';
 import { StatusBar } from 'expo-status-bar';
+import { useEffect } from 'react';
 import { View } from 'react-native';
 import { colors } from '../components/ui';
 import { markActive } from '../lib/activity';
 import { DB_NAME, migrate } from '../lib/db';
+import { setupAudio } from '../lib/feedback';
 import { pruneRecordings } from '../lib/recordings';
 
 export default function RootLayout() {
+  useEffect(setupAudio, []);
   return (
     <SQLiteProvider
       databaseName={DB_NAME}
