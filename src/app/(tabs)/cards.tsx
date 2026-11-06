@@ -6,7 +6,7 @@ import { useCallback, useEffect, useState } from 'react';
 import { Pressable, StyleSheet, Text, TextInput, View } from 'react-native';
 import { ResultBanner } from '../../components/ResultBanner';
 import { Body, Button, Card, colors, H1, Screen, shade, tap, tint } from '../../components/ui';
-import { exerciseFor, gradeAnswer, hint, makeCloze, type ExerciseKind, type Verdict } from '../../lib/answer';
+import { clozeReveal, exerciseFor, gradeAnswer, hint, makeCloze, type ExerciseKind, type Verdict } from '../../lib/answer';
 import type { Outcome } from '../../lib/feedback';
 import { getStudyQueue, logAttempt, saveReview, type ReviewCard } from '../../lib/db';
 import { markActive } from '../../lib/activity';
@@ -176,6 +176,8 @@ function TypedExercise({
   const [hints, setHints] = useState(0);
   const [gaveUp, setGaveUp] = useState(false);
   const expected = kind === 'cloze' && cloze ? cloze.answer : card.fr;
+  // A cloze reveals what goes in the blank, so an article already in the sentence isn't shown twice.
+  const reveal = kind === 'cloze' && cloze ? clozeReveal(card.fr, cloze) : { word: card.fr, entry: null };
   // What the hint spells out: the first form of the answer, without grammar notes like "(+ subj.)".
   const hintBase = expected.split('/')[0].replace(/\(.*?\)/g, '').trim();
   const maxHints = Math.max(...hintBase.split(/[\s'’-]+/).map((w) => w.length)) - 1;
@@ -238,7 +240,8 @@ function TypedExercise({
         {verdict && (
           <View style={{ gap: 6 }}>
             {gaveUp && <Text style={styles.label}>La réponse</Text>}
-            <Text style={styles.word}>{card.fr}</Text>
+            <Text style={styles.word}>{reveal.word}</Text>
+            {reveal.entry && <Text style={styles.entry}>{reveal.entry}</Text>}
             <Example text={card.example} />
           </View>
         )}
@@ -281,6 +284,7 @@ const styles = StyleSheet.create({
   flashcard: { minHeight: 260, justifyContent: 'center', alignItems: 'stretch' },
   label: { fontSize: 13, fontWeight: '600', color: colors.muted, textAlign: 'center', textTransform: 'uppercase' },
   word: { fontSize: 30, fontWeight: '700', textAlign: 'center', color: colors.ink, marginBottom: 8 },
+  entry: { fontSize: 16, textAlign: 'center', color: colors.muted, marginTop: -6, marginBottom: 4 },
   meaning: { fontSize: 20, fontWeight: '600', textAlign: 'center', color: colors.blue },
   sentence: { fontSize: 19, lineHeight: 27, textAlign: 'center', color: colors.ink },
   input: { borderWidth: 2, borderColor: colors.border, borderRadius: 10, padding: 12, fontSize: 20, color: colors.ink, marginTop: 8 },
