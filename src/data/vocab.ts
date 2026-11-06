@@ -5,9 +5,24 @@ export type VocabItem = {
   example: string;
 };
 
-// Starter deck of B1/B2 words that come up often in TCF reading, listening and writing tasks.
+import { HOUSING } from './words/housing.ts';
+import { WORK } from './words/work.ts';
+import { EDUCATION } from './words/education.ts';
+import { HEALTH } from './words/health.ts';
+import { IMMIGRATION } from './words/immigration.ts';
+import { ENVIRONMENT } from './words/environment.ts';
+import { MEDIA } from './words/media.ts';
+import { SOCIETY } from './words/society.ts';
+import { TRANSPORT } from './words/transport.ts';
+import { CULTURE } from './words/culture.ts';
+import { RELATIONS } from './words/relations.ts';
+import { MONEY } from './words/money.ts';
+import { ARGUMENT } from './words/argument.ts';
+import { VERBS } from './words/verbs.ts';
+
+// The first 100 B1/B2 words that come up most often in TCF reading, listening and writing tasks.
 // Ids are stable: changing one resets that card's review history.
-export const STARTER_VOCAB: VocabItem[] = [
+const CORE: VocabItem[] = [
   { id: 'v001', fr: 'un logement', en: 'housing, accommodation', example: 'Trouver un logement à Montréal coûte de plus en plus cher.' },
   { id: 'v002', fr: 'un loyer', en: 'rent', example: 'Le loyer augmente chaque année en juillet.' },
   { id: 'v003', fr: 'un emploi', en: 'a job', example: 'Elle cherche un emploi dans le secteur de la santé.' },
@@ -109,3 +124,20 @@ export const STARTER_VOCAB: VocabItem[] = [
   { id: 'v099', fr: 'se méfier de', en: 'to be wary of', example: 'Méfiez-vous de ces courriels frauduleux.' },
   { id: 'v100', fr: 'un avis', en: 'an opinion, notice', example: 'Je partage ton avis sur ce sujet.' },
 ];
+
+// Topic lists of about 100 words each, following the themes TCF Canada tasks are built on.
+export const TOPICS = [
+  HOUSING, WORK, EDUCATION, HEALTH, IMMIGRATION, ENVIRONMENT, MEDIA,
+  SOCIETY, TRANSPORT, CULTURE, RELATIONS, MONEY, ARGUMENT, VERBS,
+];
+
+// Takes one word from each topic in turn, so each day's new cards mix themes.
+function interleave(lists: VocabItem[][]): VocabItem[] {
+  const out: VocabItem[] = [];
+  const longest = Math.max(...lists.map((l) => l.length));
+  for (let i = 0; i < longest; i++) for (const l of lists) if (l[i]) out.push(l[i]);
+  return out;
+}
+
+// The whole deck, in the order new cards are introduced: the core 100 first, then the topics mixed.
+export const STARTER_VOCAB: VocabItem[] = [...CORE, ...interleave(TOPICS)];

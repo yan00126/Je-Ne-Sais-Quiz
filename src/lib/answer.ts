@@ -52,7 +52,10 @@ export function gradeAnswer(typed: string, expected: string): Verdict {
 export function makeCloze(fr: string, example: string): { sentence: string; answer: string } | null {
   const word = headword(fr);
   if (word.length < 3) return null;
-  const i = example.toLowerCase().replace(/[’]/g, "'").indexOf(word);
+  // Only match at the start of a word, so "art" never blanks the middle of "partir".
+  const lower = example.toLowerCase().replace(/[’]/g, "'");
+  let i = lower.indexOf(word);
+  while (i > 0 && /\p{L}/u.test(lower[i - 1])) i = lower.indexOf(word, i + 1);
   if (i < 0) return null;
   const answer = example.slice(i, i + word.length);
   return { sentence: example.slice(0, i) + '_'.repeat(Math.max(4, word.length)) + example.slice(i + word.length), answer };

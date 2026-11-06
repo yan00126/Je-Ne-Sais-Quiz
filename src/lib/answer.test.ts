@@ -61,3 +61,8 @@ test('a cloze reveal lists the dictionary form only when it differs', () => {
   const cependant = makeCloze('cependant', 'Le projet est intéressant ; cependant, il manque de financement.')!;
   assert.deepEqual(clozeReveal('cependant', cependant), { word: 'cependant', entry: null });
 });
+
+test('a cloze only blanks a whole word, never the middle of one', () => {
+  assert.equal(makeCloze('un art', 'Il doit partir, car il aime l’art.')?.sentence, 'Il doit partir, car il aime l’____.');
+  assert.equal(makeCloze('un art', 'Il doit partir.'), null);
+});
