@@ -1,4 +1,5 @@
 import * as Speech from 'expo-speech';
+import { speak } from '../lib/speech';
 import { useSQLiteContext } from 'expo-sqlite';
 import { useEffect, useState } from 'react';
 import { View } from 'react-native';
@@ -43,8 +44,7 @@ export function ComprehensionSession({ skill, items }: { skill: 'listening' | 'r
   function play(rate: number) {
     setPlays((n) => n + 1);
     setSpeaking(true);
-    Speech.speak(item!.text, {
-      language: 'fr-FR',
+    speak(item!.text, {
       rate,
       onDone: () => setSpeaking(false),
       onStopped: () => setSpeaking(false),

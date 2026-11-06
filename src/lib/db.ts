@@ -104,6 +104,13 @@ export async function migrate(db: SQLiteDatabase) {
       PRAGMA user_version = 4;
     `);
   }
+  if (user_version < 5) {
+    // Small app settings, e.g. the French voice picked in « Voix française ».
+    await db.execAsync(`
+      CREATE TABLE IF NOT EXISTS settings (key TEXT PRIMARY KEY NOT NULL, value TEXT NOT NULL);
+      PRAGMA user_version = 5;
+    `);
+  }
   await seedCards(db);
 }
 

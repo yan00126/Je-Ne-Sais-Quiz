@@ -1,5 +1,6 @@
 import { createAudioPlayer, type AudioPlayer } from 'expo-audio';
 import * as Speech from 'expo-speech';
+import { speak as speakFrench } from './speech';
 
 // How long a recording may take to start before we give up and use the device voice.
 const LOAD_TIMEOUT_MS = 4000;
@@ -8,7 +9,7 @@ let player: AudioPlayer | null = null;
 let loadedUrl: string | null = null;
 let attempt = 0;
 
-const speak = (text: string) => Speech.speak(text, { language: 'fr-FR' });
+const speak = (text: string) => speakFrench(text);
 
 // Plays a human recording when there is one, and falls back to the device's French voice
 // when there is none, or when it fails to load (offline, file gone).

@@ -8,6 +8,7 @@ import { markActive } from '../lib/activity';
 import { DB_NAME, migrate } from '../lib/db';
 import { setupAudio } from '../lib/feedback';
 import { pruneRecordings } from '../lib/recordings';
+import { loadVoiceChoice } from '../lib/speech';
 
 export default function RootLayout() {
   useEffect(setupAudio, []);
@@ -17,6 +18,7 @@ export default function RootLayout() {
       onInit={async (db) => {
         await migrate(db);
         await pruneRecordings(db).catch(() => {});
+        await loadVoiceChoice(db).catch(() => {});
       }}
     >
       <StatusBar style="dark" />
@@ -40,6 +42,7 @@ export default function RootLayout() {
           <Stack.Screen name="practice/dialogue" options={{ title: 'Dialogue guidé' }} />
           <Stack.Screen name="mistakes" options={{ title: 'Mes erreurs' }} />
           <Stack.Screen name="recordings" options={{ title: 'Mes enregistrements' }} />
+          <Stack.Screen name="voice" options={{ title: 'Voix française' }} />
         </Stack>
       </View>
     </SQLiteProvider>
