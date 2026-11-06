@@ -116,15 +116,20 @@ export async function migrate(db: SQLiteDatabase) {
 
 // Adds any starter words not yet in the deck, so new vocabulary ships with app updates.
 async function seedCards(db: SQLiteDatabase) {
+  const have = new Set((await db.getAllAsync<{ id: string }>('SELECT id FROM cards')).map((r) => r.id));
+  const missing = STARTER_VOCAB.filter((v) => !have.has(v.id));
+  if (!missing.length) return;
   const now = new Date();
-  for (const item of STARTER_VOCAB) {
-    const r = newCardRow(item.id, now);
-    await db.runAsync(
-      `INSERT OR IGNORE INTO cards (id, due, stability, difficulty, elapsed_days, scheduled_days, learning_steps, reps, lapses, state, last_review)
-       VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
-      r.id, r.due, r.stability, r.difficulty, r.elapsed_days, r.scheduled_days, r.learning_steps, r.reps, r.lapses, r.state, r.last_review,
-    );
-  }
+  await db.withTransactionAsync(async () => {
+    for (const item of missing) {
+      const r = newCardRow(item.id, now);
+      await db.runAsync(
+        `INSERT OR IGNORE INTO cards (id, due, stability, difficulty, elapsed_days, scheduled_days, learning_steps, reps, lapses, state, last_review)
+         VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
+        r.id, r.due, r.stability, r.difficulty, r.elapsed_days, r.scheduled_days, r.learning_steps, r.reps, r.lapses, r.state, r.last_review,
+      );
+    }
+  });
 }
 
 function startOfToday() {
@@ -134,6 +139,12 @@ function startOfToday() {
 }
 
 const VOCAB_BY_ID = new Map(STARTER_VOCAB.map((v) => [v.id, v]));
+const DECK_ORDER = new Map(STARTER_VOCAB.map((v, i) => [v.id, i]));
+
+// Words the learner added come first, then starter words in deck order (core 100, then topics mixed).
+export function newCardOrder(id: string) {
+  return id.startsWith('u') ? -1 : DECK_ORDER.get(id) ?? Infinity;
+}
 
 async function withVocab(db: SQLiteDatabase, rows: CardRow[]): Promise<ReviewCard[]> {
   const custom = await db.getAllAsync<VocabItem>('SELECT * FROM custom_vocab');
@@ -182,7 +193,10 @@ export async function newCardsLeftToday(db: SQLiteDatabase) {
 export async function getStudyQueue(db: SQLiteDatabase): Promise<ReviewCard[]> {
   const now = Date.now();
   const due = await db.getAllAsync<CardRow>('SELECT * FROM cards WHERE reps > 0 AND due <= ? ORDER BY due LIMIT 100', now);
-  const fresh = await db.getAllAsync<CardRow>("SELECT * FROM cards WHERE reps = 0 ORDER BY id LIKE 'u%' DESC, id LIMIT ?", await newCardsLeftToday(db));
+  const unseen = await db.getAllAsync<CardRow>('SELECT * FROM cards WHERE reps = 0');
+  const fresh = unseen
+    .sort((a, b) => newCardOrder(a.id) - newCardOrder(b.id) || a.id.localeCompare(b.id))
+    .slice(0, await newCardsLeftToday(db));
   return withVocab(db, [...due, ...fresh]);
 }
 

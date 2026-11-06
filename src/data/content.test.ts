@@ -83,7 +83,7 @@ test('typing a vocab word exactly as shown is always marked correct', () => {
 
 test('no vocab cloze shows an article twice', () => {
   // The article stays in the sentence, so neither the blank's answer nor what is revealed may start with one.
-  const article = /^(?:une|un|les|le|la|des|l'|l’)\s*/i;
+  const article = /^(?:(?:une|un|les|le|la|des)\s|l['’])/i;
   for (const v of STARTER_VOCAB) {
     const c = makeCloze(v.fr, v.example);
     if (!c) continue;
