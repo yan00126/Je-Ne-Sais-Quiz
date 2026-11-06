@@ -1022,4 +1022,34 @@ export const LISTENING: ComprehensionItem[] = [
       },
     ],
   },
+  {
+    id: 'l023',
+    level: 'B2',
+    title: 'Chronique : la semaine de quatre jours',
+    text:
+      'De plus en plus d’entreprises québécoises testent la semaine de quatre jours, sans baisse de salaire. ' +
+      'Les premiers résultats sont encourageants : moins d’absences et des employés plus motivés. ' +
+      'Pourtant, il serait prématuré de crier victoire. Dans les hôpitaux ou les commerces, où il faut assurer une présence constante, ' +
+      'le modèle est beaucoup plus difficile à appliquer. Autrement dit, ce qui fonctionne dans un bureau ne convient pas forcément à tous les secteurs.',
+    questions: [
+      {
+        prompt: 'Quel effet positif la chronique mentionne-t-elle ?',
+        choices: ['Des salaires plus élevés', 'Moins d’absences', 'Des bureaux plus grands', 'Plus de clients'],
+        answer: 1,
+        explanation: '« Moins d’absences et des employés plus motivés ». Le salaire ne baisse pas, mais il n’augmente pas non plus.',
+      },
+      {
+        prompt: 'Que pense le chroniqueur ?',
+        choices: [
+          'Le modèle doit devenir obligatoire',
+          'Le modèle est un échec',
+          'Le modèle ne convient pas à tous les secteurs',
+          'Le modèle est réservé aux hôpitaux',
+        ],
+        answer: 2,
+        explanation:
+          '« Il serait prématuré de crier victoire » = il est trop tôt pour dire que c’est un succès total. « Ne convient pas forcément à tous les secteurs ».',
+      },
+    ],
+  },
 ];
