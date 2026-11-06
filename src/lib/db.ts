@@ -1,6 +1,7 @@
 import type { SQLiteDatabase } from 'expo-sqlite';
 import { STARTER_VOCAB, type VocabItem } from '../data/vocab';
 import { newCardRow, type CardRow } from './srs';
+import { currentLevel, type Attempt, type Level, type LevelState } from './level';
 import { dayKey, wordTiers, type Session, type WordTiers } from './stats';
 
 export const DB_NAME = 'jenesaisquiz.db';
@@ -257,6 +258,24 @@ export async function pickNextItem<T extends { id: string }>(db: SQLiteDatabase,
   );
   const counts = new Map(rows.map((r) => [r.item_id, r.n]));
   return items.reduce((best, item) => ((counts.get(item.id) ?? 0) < (counts.get(best.id) ?? 0) ? item : best));
+}
+
+// The learner's level for a comprehension skill, replayed from every counted attempt in order.
+export async function getLevelState(
+  db: SQLiteDatabase,
+  skill: Skill,
+  items: { id: string; level: Level }[],
+): Promise<LevelState> {
+  const levels = new Map(items.map((i) => [i.id, i.level]));
+  const rows = await db.getAllAsync<{ item_id: string; score: number; total: number }>(
+    'SELECT item_id, score, total FROM attempts WHERE skill = ? AND counts = 1 ORDER BY created_at, id',
+    skill,
+  );
+  const history: Attempt[] = rows.flatMap((r) => {
+    const level = levels.get(r.item_id);
+    return level ? [{ level, score: r.score, total: r.total }] : [];
+  });
+  return currentLevel(history);
 }
 
 export async function logStudyTime(db: SQLiteDatabase, skill: Skill, startedAt: number, seconds: number) {
