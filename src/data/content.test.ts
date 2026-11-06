@@ -6,7 +6,7 @@ import { READING, LISTENING, type ComprehensionItem } from './comprehension.ts';
 import { WRITING_TASKS, SPEAKING_TASKS } from './prompts.ts';
 import { STARTER_VOCAB } from './vocab.ts';
 import { DIALOGUES } from './dialogues.ts';
-import { gradeAnswer } from '../lib/answer.ts';
+import { clozeReveal, gradeAnswer, makeCloze } from '../lib/answer.ts';
 
 function assertUniqueIds(name: string, items: { id: string }[]) {
   const seen = new Set<string>();
@@ -79,4 +79,17 @@ test('every vocab card has a French word, a meaning and an example', () => {
 
 test('typing a vocab word exactly as shown is always marked correct', () => {
   for (const v of STARTER_VOCAB) assert.equal(gradeAnswer(v.fr, v.fr), 'correct', `${v.id} ${v.fr}`);
+});
+
+test('no vocab cloze shows an article twice', () => {
+  // The article stays in the sentence, so neither the blank's answer nor what is revealed may start with one.
+  const article = /^(?:une|un|les|le|la|des|l'|l’)\s*/i;
+  for (const v of STARTER_VOCAB) {
+    const c = makeCloze(v.fr, v.example);
+    if (!c) continue;
+    const where = `${v.id} "${v.fr}"`;
+    assert.ok(!article.test(c.answer), `${where}: blank answer "${c.answer}" starts with an article`);
+    assert.ok(!article.test(clozeReveal(v.fr, c).word), `${where}: revealed answer starts with an article`);
+    assert.equal(gradeAnswer(c.answer, c.answer), 'correct', `${where}: its own answer isn't accepted`);
+  }
 });

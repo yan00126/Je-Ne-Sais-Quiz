@@ -1,6 +1,6 @@
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
-import { exerciseFor, gradeAnswer, headword, hint, makeCloze } from './answer.ts';
+import { clozeReveal, exerciseFor, gradeAnswer, headword, hint, makeCloze } from './answer.ts';
 
 test('new words are flashcards, then exercises rotate', () => {
   assert.equal(exerciseFor(0, true), 'flashcard');
@@ -41,4 +41,23 @@ test('hints reveal more letters each time', () => {
 test('typing both forms of a word, as shown on the card, is correct', () => {
   assert.equal(gradeAnswer('un citoyen / une citoyenne', 'un citoyen / une citoyenne'), 'correct');
   assert.equal(gradeAnswer('un citoyen/une citoyenne', 'un citoyen / une citoyenne'), 'correct');
+});
+
+test('a cloze never asks for an article the sentence already shows', () => {
+  const c = makeCloze('les transports en commun', 'Je prends les transports en commun pour aller au travail.')!;
+  assert.equal(c.answer, 'transports en commun');
+  assert.match(c.sentence, /^Je prends les _+ pour/);
+  // Shown after checking: the words from the blank, not "les transports en commun".
+  assert.deepEqual(clozeReveal('les transports en commun', c), { word: 'transports en commun', entry: 'les transports en commun' });
+  // Typing it with or without the article is fine.
+  assert.equal(gradeAnswer('transports en commun', c.answer), 'correct');
+  assert.equal(gradeAnswer('les transports en commun', c.answer), 'correct');
+  assert.equal(gradeAnswer('Transports en commun', c.answer), 'correct');
+});
+
+test('a cloze reveal lists the dictionary form only when it differs', () => {
+  const loyer = makeCloze('un loyer', 'Le loyer augmente chaque année en juillet.')!;
+  assert.deepEqual(clozeReveal('un loyer', loyer), { word: 'loyer', entry: 'un loyer' });
+  const cependant = makeCloze('cependant', 'Le projet est intéressant ; cependant, il manque de financement.')!;
+  assert.deepEqual(clozeReveal('cependant', cependant), { word: 'cependant', entry: null });
 });

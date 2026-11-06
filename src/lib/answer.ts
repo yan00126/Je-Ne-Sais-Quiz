@@ -58,6 +58,15 @@ export function makeCloze(fr: string, example: string): { sentence: string; answ
   return { sentence: example.slice(0, i) + '_'.repeat(Math.max(4, word.length)) + example.slice(i + word.length), answer };
 }
 
+// What to show as the answer once a cloze is checked. The blank only holds the word, because the
+// sentence already shows its article ("Je prends les ___"), so revealing the dictionary form
+// ("les transports en commun") would suggest the article belonged in the blank too. The dictionary
+// form comes back separately when it differs, e.g. "loyer" in "Le ___ augmente" is listed as "un loyer".
+export function clozeReveal(fr: string, cloze: { answer: string }): { word: string; entry: string | null } {
+  const same = normalize(cloze.answer) === normalize(fr.split('/')[0]) && !fr.includes('/');
+  return { word: cloze.answer, entry: same ? null : fr };
+}
+
 // A hint that reveals the first `letters` letters of each word, e.g. hint("un logement", 1) → "u_ l_______".
 // Spaces, apostrophes and hyphens stay visible so the shape of the answer shows.
 export function hint(answer: string, letters: number) {
