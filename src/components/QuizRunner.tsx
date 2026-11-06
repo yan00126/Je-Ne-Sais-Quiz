@@ -1,7 +1,9 @@
 import { useMemo, useState } from 'react';
+import Ionicons from '@expo/vector-icons/Ionicons';
 import { Pressable, StyleSheet, Text, View } from 'react-native';
 import type { Question } from '../data/comprehension';
-import { Body, Button, Card, colors, H2 } from './ui';
+import { ResultBanner } from './ResultBanner';
+import { Body, Button, Card, colors, H2, tint } from './ui';
 
 // Multiple-choice questions, one at a time, with the right answer revealed after each pick.
 export function QuizRunner({
@@ -19,6 +21,7 @@ export function QuizRunner({
 
   const q = questions[index];
   const last = index === questions.length - 1;
+  const right = picked === q.answer;
   // Show choices in random order so the right answer isn't always in the same spot. Indexes stay the original ones.
   const order = useMemo(() => shuffle(q.choices.map((_, i) => i)), [q]);
 
@@ -48,17 +51,26 @@ export function QuizRunner({
         {order.map((i, position) => {
           const choice = q.choices[i];
           const revealed = picked !== null;
-          const border = revealed && i === q.answer ? colors.green : revealed && i === picked ? colors.red : colors.border;
+          const mark = revealed && i === q.answer ? colors.green : revealed && i === picked ? colors.red : null;
           return (
-            <Pressable key={i} onPress={() => pick(i)} style={[styles.choice, { borderColor: border }]}>
+            <Pressable
+              key={i}
+              onPress={() => pick(i)}
+              style={[styles.choice, { borderColor: mark ?? colors.border, backgroundColor: mark ? tint(mark) : 'transparent' }]}
+            >
               <Text style={styles.letter}>{'ABCD'[position]}</Text>
               <Text style={styles.choiceText}>{choice}</Text>
+              {mark && <Ionicons name={i === q.answer ? 'checkmark-circle' : 'close-circle'} size={22} color={mark} />}
             </Pressable>
           );
         })}
       </View>
       {picked !== null && q.explanation && <Body muted>{q.explanation}</Body>}
-      {picked !== null && <Button title={last ? 'Voir le résultat' : 'Question suivante'} onPress={next} />}
+      {picked !== null && (
+        <ResultBanner key={index} outcome={right ? 'correct' : 'wrong'} title={right ? 'Correct !' : 'Pas tout à fait'}>
+          <Button title={last ? 'Voir le résultat' : 'Question suivante'} color={right ? colors.green : colors.red} onPress={next} />
+        </ResultBanner>
+      )}
     </Card>
   );
 }

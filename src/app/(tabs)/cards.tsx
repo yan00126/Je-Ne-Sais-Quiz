@@ -4,8 +4,10 @@ import * as Speech from 'expo-speech';
 import { useSQLiteContext } from 'expo-sqlite';
 import { useCallback, useEffect, useState } from 'react';
 import { Pressable, StyleSheet, Text, TextInput, View } from 'react-native';
+import { ResultBanner } from '../../components/ResultBanner';
 import { Body, Button, Card, colors, H1, Screen, shade, tap, tint } from '../../components/ui';
 import { exerciseFor, gradeAnswer, hint, makeCloze, type ExerciseKind, type Verdict } from '../../lib/answer';
+import type { Outcome } from '../../lib/feedback';
 import { getStudyQueue, logAttempt, saveReview, type ReviewCard } from '../../lib/db';
 import { markActive } from '../../lib/activity';
 import { intervalLabel, Rating, review, type Grade } from '../../lib/srs';
@@ -153,6 +155,9 @@ const PROMPTS: Record<Exclude<ExerciseKind, 'flashcard'>, string> = {
 };
 
 const VERDICT_GRADE: Record<Verdict, Grade> = { correct: Rating.Good, accents: Rating.Hard, wrong: Rating.Again };
+const OUTCOME: Record<Verdict, Outcome> = { correct: 'correct', accents: 'almost', wrong: 'wrong' };
+const OUTCOME_COLOR: Record<Outcome, string> = { correct: colors.green, almost: colors.amber, wrong: colors.red };
+const TITLES: Record<Verdict, string> = { correct: 'Correct !', accents: 'Presque !', wrong: 'Pas tout à fait' };
 
 // Known words: type the answer, graded automatically into the scheduler.
 function TypedExercise({
@@ -182,13 +187,14 @@ function TypedExercise({
   function check() {
     const v = gradeAnswer(typed, expected);
     setVerdict(v);
-    if (v !== 'correct') say(card.fr);
+    // Let the result sound finish before the word is read out.
+    if (v !== 'correct') setTimeout(() => say(card.fr), 450);
   }
 
   function giveUp() {
     setGaveUp(true);
     setVerdict('wrong');
-    say(card.fr);
+    setTimeout(() => say(card.fr), 450);
   }
 
   // Not knowing is an "Again"; needing a hint makes a right answer count as "Hard" instead of "Good".
@@ -231,15 +237,7 @@ function TypedExercise({
         {hints > 0 && verdict === null && <Text style={styles.hint}>{hint(hintBase, hints)}</Text>}
         {verdict && (
           <View style={{ gap: 6 }}>
-            <Text style={[styles.feedback, { color: verdict === 'correct' ? colors.green : verdict === 'accents' ? colors.amber : colors.red }]}>
-              {gaveUp
-                ? 'La réponse :'
-                : verdict === 'correct'
-                  ? '✓ Correct !'
-                  : verdict === 'accents'
-                    ? 'Presque : attention aux accents'
-                    : '✗ Pas tout à fait'}
-            </Text>
+            {gaveUp && <Text style={styles.label}>La réponse</Text>}
             <Text style={styles.word}>{card.fr}</Text>
             <Example text={card.example} />
           </View>
@@ -264,12 +262,16 @@ function TypedExercise({
           </View>
         </View>
       ) : (
-        <View style={{ gap: 8 }}>
-          <Button title="Continuer" onPress={() => onGrade(grade())} />
+        <ResultBanner
+          outcome={OUTCOME[verdict]}
+          title={gaveUp ? 'À retenir' : TITLES[verdict]}
+          detail={gaveUp ? undefined : verdict === 'accents' ? 'Attention aux accents' : verdict === 'correct' && hints > 0 ? 'Avec un indice' : undefined}
+        >
+          <Button title="Continuer" color={OUTCOME_COLOR[OUTCOME[verdict]]} onPress={() => onGrade(grade())} />
           {verdict !== 'correct' && !gaveUp && (
-            <Button title="J'avais raison (synonyme)" variant="outline" onPress={() => onGrade(Rating.Good)} />
+            <Button title="J'avais raison (synonyme)" variant="outline" color={colors.muted} onPress={() => onGrade(Rating.Good)} />
           )}
-        </View>
+        </ResultBanner>
       )}
     </>
   );
@@ -282,7 +284,6 @@ const styles = StyleSheet.create({
   meaning: { fontSize: 20, fontWeight: '600', textAlign: 'center', color: colors.blue },
   sentence: { fontSize: 19, lineHeight: 27, textAlign: 'center', color: colors.ink },
   input: { borderWidth: 2, borderColor: colors.border, borderRadius: 10, padding: 12, fontSize: 20, color: colors.ink, marginTop: 8 },
-  feedback: { fontSize: 17, fontWeight: '700', textAlign: 'center' },
   hint: { fontSize: 22, fontWeight: '600', letterSpacing: 3, textAlign: 'center', color: colors.amber, fontVariant: ['tabular-nums'] },
   helpRow: { flexDirection: 'row', gap: 8 },
   example: { flexDirection: 'row', gap: 8, alignItems: 'flex-start', padding: 8, borderRadius: 10 },
