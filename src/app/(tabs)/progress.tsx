@@ -65,6 +65,11 @@ export default function Progress() {
         <Body muted>Réécoutez vos réponses orales et comparez vos prises d’une même phrase.</Body>
         <Button title="Écouter mes enregistrements" variant="outline" onPress={() => router.push('/recordings')} />
       </Card>
+      <Card>
+        <H2>Voix française</H2>
+        <Body muted>Choisissez la voix qui lit les phrases. La meilleure voix installée est choisie automatiquement.</Body>
+        <Button title="Choisir la voix" variant="outline" onPress={() => router.push('/voice')} />
+      </Card>
       {(['listening', 'reading', 'writing', 'speaking'] as Skill[]).map((skill) => {
         const s = bySkill.get(skill);
         const graded = skill === 'listening' || skill === 'reading';

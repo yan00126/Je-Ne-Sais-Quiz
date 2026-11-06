@@ -66,7 +66,4 @@ export function useRecording() {
   return { isRecording: state.isRecording, seconds: state.durationMillis / 1000, uri, start, stop, playMine, reset };
 }
 
-export function speakFr(text: string, slow = false, onDone?: () => void) {
-  Speech.stop();
-  Speech.speak(text, { language: 'fr-FR', rate: slow ? 0.75 : 1, onDone });
-}
+export { speakFr } from './speech';
