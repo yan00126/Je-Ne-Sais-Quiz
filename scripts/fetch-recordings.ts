@@ -2,7 +2,7 @@
 //   - Each word: a Lingua Libre recording on Wikimedia Commons (files named "LL-Q150 (fra)-<speaker>-<word>.wav").
 //   - Each word: a Tatoeba sentence that uses it, has a human recording and, if possible, an English translation.
 // Run with: node --experimental-strip-types scripts/fetch-recordings.ts
-import { readFileSync, writeFileSync } from 'node:fs';
+import { existsSync, mkdirSync, readFileSync, writeFileSync } from 'node:fs';
 import { headword } from '../src/lib/answer.ts';
 import { STARTER_VOCAB } from '../src/data/vocab.ts';
 import type { RealExample, Recording } from '../src/data/recordings.ts';
@@ -73,7 +73,10 @@ async function linguaLibre(fr: string): Promise<Recording | null> {
 
 // Sentences checked by hand and rejected: the word is used in another sense ("quartier général"),
 // or the sentence is too odd to learn from.
-const REJECTED = new Set([5685933, 450587, 880932]);
+const REJECTED = new Set([
+  5685933, 450587, 880932, 2590506, 1314439, 1970861, 4270022, 11256745, 1538542, 2269528, 2787436, 11593974,
+  1088781, 6668658, 11145705, 1314395, 874784,
+]);
 
 // Shortish, everyday sentences read best on a card.
 const wordCount = (s: string) => s.split(/\s+/).length;
@@ -98,7 +101,7 @@ async function tatoeba(fr: string): Promise<RealExample | null> {
   for (const form of lookupForms(fr)) {
     const q = new URLSearchParams({ from: 'fra', to: 'eng', query: `"${form}"`, has_audio: 'yes', sort: 'words' });
     const data = await json(`https://tatoeba.org/en/api_v0/search?${q}`);
-    const re = new RegExp(`(^|[^\\p{L}])${norm(form).replace(/[.*+?^${}()|[\]\\]/g, '\\$&')}($|[^\\p{L}])`, 'u');
+    const re = new RegExp(`(^|[^\\p{L}-])${norm(form).replace(/[.*+?^${}()|[\]\\]/g, '\\$&')}($|[^\\p{L}-])`, 'u');
     const candidates = (data.results as any[])
       .filter((s) => !REJECTED.has(s.id) && re.test(norm(s.text)) && s.audios?.length && wordCount(s.text) >= 5 && wordCount(s.text) <= 14)
       .map((s) => ({ s, en: (s.translations ?? []).flat().find((t: any) => t.lang === 'eng')?.text ?? null }))
@@ -123,13 +126,36 @@ async function tatoeba(fr: string): Promise<RealExample | null> {
   return null;
 }
 
+// Lookups are slow (Wikimedia rate limits), so each result is saved as it comes in and a rerun picks up
+// where the last one stopped. Delete scripts/.cache to look every word up again.
+const cacheDir = new URL('./.cache/', import.meta.url);
+const cachePath = new URL('recordings.json', cacheDir);
+type Found = { word: Recording | null; example: RealExample | null };
+const cache: Record<string, Found> = existsSync(cachePath) ? JSON.parse(readFileSync(cachePath, 'utf8')) : {};
+mkdirSync(cacheDir, { recursive: true });
+
 const words: Record<string, Recording> = {};
 const examples: Record<string, RealExample> = {};
+// --cached writes recordings.ts from what is already cached, without looking anything up.
+const cachedOnly = process.argv.includes('--cached');
+const sentenceId = (e: RealExample) => Number(e.audio.page.split('/').pop());
 for (const item of STARTER_VOCAB) {
-  const [w, e] = await Promise.all([linguaLibre(item.fr).catch(() => null), tatoeba(item.fr).catch(() => null)]);
-  if (w) words[item.id] = w;
-  if (e) examples[item.id] = e;
-  console.log(`${item.id} ${item.fr.padEnd(28)} word:${w ? '✓' : '·'} example:${e ? '✓' : '·'}`);
+  const key = `${item.id} ${item.fr}`;
+  let found = cache[key];
+  if (!found && cachedOnly) continue;
+  if (!found) {
+    // A failed lookup (network, rate limit) is not cached, so the next run tries it again.
+    const failed = Symbol();
+    const [w, e] = await Promise.all([linguaLibre(item.fr).catch(() => failed), tatoeba(item.fr).catch(() => failed)]);
+    found = { word: w === failed ? null : (w as Recording | null), example: e === failed ? null : (e as RealExample | null) };
+    if (w !== failed && e !== failed) {
+      cache[key] = found;
+      writeFileSync(cachePath, JSON.stringify(cache));
+    }
+    console.log(`${item.id} ${item.fr.padEnd(28)} word:${found.word ? '✓' : '·'} example:${found.example ? '✓' : '·'}${w === failed || e === failed ? ' (failed, will retry)' : ''}`);
+  }
+  if (found.word) words[item.id] = found.word;
+  if (found.example && !REJECTED.has(sentenceId(found.example))) examples[item.id] = found.example;
 }
 console.log(`\n${Object.keys(words).length}/${STARTER_VOCAB.length} words, ${Object.keys(examples).length}/${STARTER_VOCAB.length} examples`);
 
