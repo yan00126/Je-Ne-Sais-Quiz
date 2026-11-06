@@ -6,6 +6,7 @@ import { READING, LISTENING, type ComprehensionItem } from './comprehension.ts';
 import { WRITING_TASKS, SPEAKING_TASKS } from './prompts.ts';
 import { STARTER_VOCAB } from './vocab.ts';
 import { DIALOGUES } from './dialogues.ts';
+import { LEVELS, WINDOW } from '../lib/level.ts';
 import { clozeReveal, gradeAnswer, makeCloze } from '../lib/answer.ts';
 
 function assertUniqueIds(name: string, items: { id: string }[]) {
@@ -44,6 +45,15 @@ function checkComprehension(name: string, items: ComprehensionItem[]) {
 
 test('reading items have valid questions', () => checkComprehension('READING', READING));
 test('listening items have valid questions', () => checkComprehension('LISTENING', LISTENING));
+
+test('every listening level has enough documents to move up from', () => {
+  // Listening only serves your current level; with fewer documents than the decision window
+  // you would hear the same ones over and over before the app could judge you.
+  for (const level of LEVELS) {
+    const n = LISTENING.filter((i) => i.level === level).length;
+    assert.ok(n >= WINDOW, `only ${n} ${level} listening documents, need at least ${WINDOW}`);
+  }
+});
 
 test('the correct answer is not always in the same position', () => {
   // If every answer were choice B, you could pass without reading.

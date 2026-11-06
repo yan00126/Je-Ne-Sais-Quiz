@@ -801,4 +801,255 @@ export const LISTENING: ComprehensionItem[] = [
       },
     ],
   },
+  // Short A2 documents (20 to 40 words), so a beginner has enough items before moving up to B1.
+  {
+    id: 'l013',
+    level: 'A2',
+    title: 'Au café',
+    text:
+      'Client : Bonjour, je voudrais un grand café au lait et un croissant, s’il vous plaît. ' +
+      'Serveuse : Sur place ou pour emporter ? Client : Pour emporter. Serveuse : Ça fait six dollars cinquante.',
+    questions: [
+      {
+        prompt: 'Que commande le client ?',
+        choices: ['Un thé et un muffin', 'Un café au lait et un croissant', 'Un jus d’orange', 'Un sandwich'],
+        answer: 1,
+        explanation: '« Je voudrais un grand café au lait et un croissant ».',
+      },
+      {
+        prompt: 'Combien paie-t-il ?',
+        choices: ['5,60 $', '7,50 $', '6,50 $', '16,50 $'],
+        answer: 2,
+        explanation: '« Six dollars cinquante » = 6,50 $. Attention : « six » et « seize » (16) se ressemblent.',
+      },
+    ],
+  },
+  {
+    id: 'l014',
+    level: 'A2',
+    title: 'Message d’une amie',
+    text:
+      'Salut, c’est Julie ! Je suis en retard, mon autobus est bloqué dans la circulation. ' +
+      'Je vais arriver au restaurant vers dix-neuf heures quinze. Commande sans moi, d’accord ? À tantôt !',
+    questions: [
+      {
+        prompt: 'Pourquoi Julie est-elle en retard ?',
+        choices: ['Elle travaille tard', 'Elle est malade', 'Elle a oublié le rendez-vous', 'Son autobus est bloqué'],
+        answer: 3,
+        explanation: '« Mon autobus est bloqué dans la circulation ». « À tantôt » = à plus tard (Québec).',
+      },
+      {
+        prompt: 'À quelle heure va-t-elle arriver ?',
+        choices: ['Vers 19 h 15', 'Vers 19 h 50', 'Vers 17 h 15', 'Vers 9 h 15'],
+        answer: 0,
+        explanation: '« Dix-neuf heures quinze » = 19 h 15. Quinze (15) ≠ cinquante (50).',
+      },
+    ],
+  },
+  {
+    id: 'l015',
+    level: 'A2',
+    title: 'À l’épicerie',
+    text:
+      'Attention, chers clients : cette semaine, les pommes du Québec sont à deux dollars le sac. ' +
+      'Le rayon des fruits et légumes se trouve au fond du magasin, à gauche. Merci de magasiner chez nous !',
+    questions: [
+      {
+        prompt: 'Qu’est-ce qui est en promotion ?',
+        choices: ['Le pain', 'Les pommes', 'Le lait', 'Les tomates'],
+        answer: 1,
+        explanation: '« Les pommes du Québec sont à deux dollars le sac ».',
+      },
+      {
+        prompt: 'Où sont les fruits et légumes ?',
+        choices: ['À l’entrée, à droite', 'Près des caisses', 'Au fond, à gauche', 'Au deuxième étage'],
+        answer: 2,
+        explanation: '« Au fond du magasin, à gauche ». « Au fond » = tout au bout.',
+      },
+    ],
+  },
+  {
+    id: 'l016',
+    level: 'A2',
+    title: 'Le nouveau voisin',
+    text:
+      'Bonjour, je m’appelle Karim. J’habite au troisième étage depuis lundi. Je viens du Maroc et je travaille comme infirmier à l’hôpital. ' +
+      'Si vous avez besoin d’aide, n’hésitez pas à frapper à ma porte !',
+    questions: [
+      {
+        prompt: 'Quel est le métier de Karim ?',
+        choices: ['Médecin', 'Pharmacien', 'Professeur', 'Infirmier'],
+        answer: 3,
+        explanation: '« Je travaille comme infirmier à l’hôpital ».',
+      },
+      {
+        prompt: 'Depuis quand habite-t-il dans l’immeuble ?',
+        choices: ['Depuis lundi', 'Depuis un an', 'Depuis trois mois', 'Depuis hier'],
+        answer: 0,
+        explanation: '« J’habite au troisième étage depuis lundi ». « Troisième » est l’étage, pas une durée.',
+      },
+    ],
+  },
+  {
+    id: 'l017',
+    level: 'A2',
+    title: 'Horaires de la piscine',
+    text:
+      'Vous avez joint la piscine municipale. Nous sommes ouverts du lundi au vendredi de 7 h à 21 h, et la fin de semaine de 9 h à 17 h. ' +
+      'Le bonnet de bain est obligatoire.',
+    questions: [
+      {
+        prompt: 'À quelle heure la piscine ouvre-t-elle le samedi ?',
+        choices: ['À 7 h', 'À 9 h', 'À 17 h', 'À 21 h'],
+        answer: 1,
+        explanation: '« La fin de semaine de 9 h à 17 h ». La fin de semaine = samedi et dimanche (au Canada).',
+      },
+      {
+        prompt: 'Qu’est-ce qui est obligatoire ?',
+        choices: ['Une carte de membre', 'Une réservation', 'Le bonnet de bain', 'Des lunettes de natation'],
+        answer: 2,
+        explanation: '« Le bonnet de bain est obligatoire ».',
+      },
+    ],
+  },
+  {
+    id: 'l018',
+    level: 'A2',
+    title: 'Chez le médecin',
+    text:
+      'Médecin : Qu’est-ce qui ne va pas ? Patiente : J’ai mal à la gorge et un peu de fièvre depuis deux jours. ' +
+      'Médecin : Reposez-vous, buvez beaucoup d’eau et revenez si ça ne va pas mieux dans trois jours.',
+    questions: [
+      {
+        prompt: 'Où la patiente a-t-elle mal ?',
+        choices: ['À la tête', 'Au dos', 'Au ventre', 'À la gorge'],
+        answer: 3,
+        explanation: '« J’ai mal à la gorge ».',
+      },
+      {
+        prompt: 'Que conseille le médecin ?',
+        choices: ['De se reposer et de boire de l’eau', 'D’aller à l’hôpital', 'De prendre des antibiotiques', 'De faire du sport'],
+        answer: 0,
+        explanation: '« Reposez-vous, buvez beaucoup d’eau ». Il ne donne pas de médicament.',
+      },
+    ],
+  },
+  {
+    id: 'l019',
+    level: 'A2',
+    title: 'Annonce à l’aéroport',
+    text:
+      'Les passagers du vol AC 870 à destination de Paris sont priés de se présenter à la porte 52. ' +
+      'L’embarquement commence dans quinze minutes. Préparez votre carte d’embarquement et votre passeport.',
+    questions: [
+      {
+        prompt: 'À quelle porte faut-il aller ?',
+        choices: ['La porte 15', 'La porte 52', 'La porte 870', 'La porte 25'],
+        answer: 1,
+        explanation: '« Se présenter à la porte 52 » (cinquante-deux). 870 est le numéro du vol.',
+      },
+      {
+        prompt: 'Quand l’embarquement commence-t-il ?',
+        choices: ['Maintenant', 'Dans une heure', 'Dans quinze minutes', 'Demain'],
+        answer: 2,
+        explanation: '« L’embarquement commence dans quinze minutes ».',
+      },
+    ],
+  },
+  {
+    id: 'l020',
+    level: 'A2',
+    title: 'Les projets du week-end',
+    text:
+      'Homme : Qu’est-ce que tu fais samedi ? Femme : S’il fait beau, je vais faire du vélo au parc avec mes enfants. ' +
+      'S’il pleut, on va plutôt aller au cinéma.',
+    questions: [
+      {
+        prompt: 'Que fait la femme s’il fait beau ?',
+        choices: ['Du vélo au parc', 'Du ski', 'Les courses', 'Du jardinage'],
+        answer: 0,
+        explanation: '« S’il fait beau, je vais faire du vélo au parc ».',
+      },
+      {
+        prompt: 'Et s’il pleut ?',
+        choices: ['Elle reste à la maison', 'Elle va au musée', 'Elle travaille', 'Elle va au cinéma'],
+        answer: 3,
+        explanation: '« S’il pleut, on va plutôt aller au cinéma ». « Plutôt » = à la place.',
+      },
+    ],
+  },
+  {
+    id: 'l021',
+    level: 'A2',
+    title: 'À la banque',
+    text:
+      'Employé : Bonjour, comment puis-je vous aider ? Cliente : Je viens d’arriver au Canada et je voudrais ouvrir un compte. ' +
+      'Employé : Très bien. Avez-vous votre passeport et une preuve d’adresse ?',
+    questions: [
+      {
+        prompt: 'Que veut faire la cliente ?',
+        choices: ['Changer de l’argent', 'Ouvrir un compte', 'Demander un prêt', 'Fermer son compte'],
+        answer: 1,
+        explanation: '« Je voudrais ouvrir un compte ».',
+      },
+      {
+        prompt: 'Quels documents l’employé demande-t-il ?',
+        choices: ['Un permis de conduire', 'Une carte de crédit', 'Le passeport et une preuve d’adresse', 'Un contrat de travail'],
+        answer: 2,
+        explanation: '« Avez-vous votre passeport et une preuve d’adresse ? » Une facture peut servir de preuve d’adresse.',
+      },
+    ],
+  },
+  {
+    id: 'l022',
+    level: 'A2',
+    title: 'Message de l’école',
+    text:
+      'Bonjour aux parents. Demain, l’école sera fermée à cause de la tempête de neige. ' +
+      'Les cours vont reprendre jeudi. Le service de garde est aussi fermé. Merci de votre compréhension.',
+    questions: [
+      {
+        prompt: 'Pourquoi l’école sera-t-elle fermée demain ?',
+        choices: ['À cause d’une grève', 'À cause d’un jour férié', 'À cause de travaux', 'À cause d’une tempête de neige'],
+        answer: 3,
+        explanation: '« À cause de la tempête de neige ».',
+      },
+      {
+        prompt: 'Quand les cours reprennent-ils ?',
+        choices: ['Jeudi', 'Lundi prochain', 'Demain après-midi', 'Mercredi'],
+        answer: 0,
+        explanation: '« Les cours vont reprendre jeudi ». « Reprendre » = recommencer.',
+      },
+    ],
+  },
+  {
+    id: 'l023',
+    level: 'B2',
+    title: 'Chronique : la semaine de quatre jours',
+    text:
+      'De plus en plus d’entreprises québécoises testent la semaine de quatre jours, sans baisse de salaire. ' +
+      'Les premiers résultats sont encourageants : moins d’absences et des employés plus motivés. ' +
+      'Pourtant, il serait prématuré de crier victoire. Dans les hôpitaux ou les commerces, où il faut assurer une présence constante, ' +
+      'le modèle est beaucoup plus difficile à appliquer. Autrement dit, ce qui fonctionne dans un bureau ne convient pas forcément à tous les secteurs.',
+    questions: [
+      {
+        prompt: 'Quel effet positif la chronique mentionne-t-elle ?',
+        choices: ['Des salaires plus élevés', 'Moins d’absences', 'Des bureaux plus grands', 'Plus de clients'],
+        answer: 1,
+        explanation: '« Moins d’absences et des employés plus motivés ». Le salaire ne baisse pas, mais il n’augmente pas non plus.',
+      },
+      {
+        prompt: 'Que pense le chroniqueur ?',
+        choices: [
+          'Le modèle doit devenir obligatoire',
+          'Le modèle est un échec',
+          'Le modèle ne convient pas à tous les secteurs',
+          'Le modèle est réservé aux hôpitaux',
+        ],
+        answer: 2,
+        explanation:
+          '« Il serait prématuré de crier victoire » = il est trop tôt pour dire que c’est un succès total. « Ne convient pas forcément à tous les secteurs ».',
+      },
+    ],
+  },
 ];
