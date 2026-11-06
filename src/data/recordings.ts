@@ -17,7 +17,582 @@ export type RealExample = {
   audio: Recording;
 };
 
-export const WORD_AUDIO: Record<string, Recording> = {};
+export const WORD_AUDIO: Record<string, Recording> = {
+  "v001": {
+    "url": "https://upload.wikimedia.org/wikipedia/commons/3/3d/LL-Q150_%28fra%29-LoquaxFR-logement.wav",
+    "author": "LoquaxFR",
+    "license": "CC BY-SA 4.0",
+    "source": "Lingua Libre",
+    "page": "https://commons.wikimedia.org/wiki/File:LL-Q150_(fra)-LoquaxFR-logement.wav"
+  },
+  "v002": {
+    "url": "https://upload.wikimedia.org/wikipedia/commons/f/f1/LL-Q150_%28fra%29-Lepticed7-loyer.wav",
+    "author": "Lepticed7",
+    "license": "CC BY-SA 4.0",
+    "source": "Lingua Libre",
+    "page": "https://commons.wikimedia.org/wiki/File:LL-Q150_(fra)-Lepticed7-loyer.wav"
+  },
+  "v003": {
+    "url": "https://upload.wikimedia.org/wikipedia/commons/4/49/LL-Q150_%28fra%29-GrandCelinien-emploi.wav",
+    "author": "GrandCelinien",
+    "license": "CC BY-SA 4.0",
+    "source": "Lingua Libre",
+    "page": "https://commons.wikimedia.org/wiki/File:LL-Q150_(fra)-GrandCelinien-emploi.wav"
+  },
+  "v004": {
+    "url": "https://upload.wikimedia.org/wikipedia/commons/2/26/LL-Q150_%28fra%29-0x010C-employeur.wav",
+    "author": "0x010C",
+    "license": "CC BY-SA 4.0",
+    "source": "Lingua Libre",
+    "page": "https://commons.wikimedia.org/wiki/File:LL-Q150_(fra)-0x010C-employeur.wav"
+  },
+  "v005": {
+    "url": "https://upload.wikimedia.org/wikipedia/commons/8/8f/LL-Q150_%28fra%29-Jules78120-formation.wav",
+    "author": "Jules78120",
+    "license": "CC0",
+    "source": "Lingua Libre",
+    "page": "https://commons.wikimedia.org/wiki/File:LL-Q150_(fra)-Jules78120-formation.wav"
+  },
+  "v006": {
+    "url": "https://upload.wikimedia.org/wikipedia/commons/a/a6/LL-Q150_%28fra%29-Lepticed7-dipl%C3%B4me.wav",
+    "author": "Lepticed7",
+    "license": "CC BY-SA 4.0",
+    "source": "Lingua Libre",
+    "page": "https://commons.wikimedia.org/wiki/File:LL-Q150_(fra)-Lepticed7-dipl%C3%B4me.wav"
+  },
+  "v007": {
+    "url": "https://upload.wikimedia.org/wikipedia/commons/2/2c/LL-Q150_%28fra%29-LoquaxFR-d%C3%A9marche.wav",
+    "author": "LoquaxFR",
+    "license": "CC BY-SA 4.0",
+    "source": "Lingua Libre",
+    "page": "https://commons.wikimedia.org/wiki/File:LL-Q150_(fra)-LoquaxFR-d%C3%A9marche.wav"
+  },
+  "v009": {
+    "url": "https://upload.wikimedia.org/wikipedia/commons/e/e2/LL-Q150_%28fra%29-LoquaxFR-rendez-vous.wav",
+    "author": "LoquaxFR",
+    "license": "CC BY-SA 4.0",
+    "source": "Lingua Libre",
+    "page": "https://commons.wikimedia.org/wiki/File:LL-Q150_(fra)-LoquaxFR-rendez-vous.wav"
+  },
+  "v010": {
+    "url": "https://upload.wikimedia.org/wikipedia/commons/f/f2/LL-Q150_%28fra%29-LoquaxFR-quartier.wav",
+    "author": "LoquaxFR",
+    "license": "CC BY-SA 4.0",
+    "source": "Lingua Libre",
+    "page": "https://commons.wikimedia.org/wiki/File:LL-Q150_(fra)-LoquaxFR-quartier.wav"
+  },
+  "v012": {
+    "url": "https://upload.wikimedia.org/wikipedia/commons/7/79/LL-Q150_%28fra%29-Sartus85-trajet.wav",
+    "author": "Sartus85",
+    "license": "CC BY-SA 4.0",
+    "source": "Lingua Libre",
+    "page": "https://commons.wikimedia.org/wiki/File:LL-Q150_(fra)-Sartus85-trajet.wav"
+  },
+  "v013": {
+    "url": "https://upload.wikimedia.org/wikipedia/commons/c/cf/LL-Q150_%28fra%29-WikiLucas00-augmentation.wav",
+    "author": "WikiLucas00",
+    "license": "CC BY-SA 4.0",
+    "source": "Lingua Libre",
+    "page": "https://commons.wikimedia.org/wiki/File:LL-Q150_(fra)-WikiLucas00-augmentation.wav"
+  },
+  "v014": {
+    "url": "https://upload.wikimedia.org/wikipedia/commons/5/56/LL-Q150_%28fra%29-Pamputt-baisse.wav",
+    "author": "Pamputt",
+    "license": "CC0",
+    "source": "Lingua Libre",
+    "page": "https://commons.wikimedia.org/wiki/File:LL-Q150_(fra)-Pamputt-baisse.wav"
+  },
+  "v015": {
+    "url": "https://upload.wikimedia.org/wikipedia/commons/1/18/LL-Q150_%28fra%29-WikiLucas00-ch%C3%B4mage.wav",
+    "author": "WikiLucas00",
+    "license": "CC BY-SA 4.0",
+    "source": "Lingua Libre",
+    "page": "https://commons.wikimedia.org/wiki/File:LL-Q150_(fra)-WikiLucas00-ch%C3%B4mage.wav"
+  },
+  "v016": {
+    "url": "https://upload.wikimedia.org/wikipedia/commons/4/4a/LL-Q150_%28fra%29-Xenoph%C3%B4n-avantage.wav",
+    "author": "Xenophôn",
+    "license": "CC BY-SA 4.0",
+    "source": "Lingua Libre",
+    "page": "https://commons.wikimedia.org/wiki/File:LL-Q150_(fra)-Xenoph%C3%B4n-avantage.wav"
+  },
+  "v017": {
+    "url": "https://upload.wikimedia.org/wikipedia/commons/e/e8/LL-Q150_%28fra%29-Eihel-inconv%C3%A9nient.wav",
+    "author": "Eihel",
+    "license": "CC BY-SA 3.0",
+    "source": "Lingua Libre",
+    "page": "https://commons.wikimedia.org/wiki/File:LL-Q150_(fra)-Eihel-inconv%C3%A9nient.wav"
+  },
+  "v019": {
+    "url": "https://upload.wikimedia.org/wikipedia/commons/0/02/LL-Q150_%28fra%29-Lepticed7-cependant.wav",
+    "author": "Lepticed7",
+    "license": "CC BY-SA 4.0",
+    "source": "Lingua Libre",
+    "page": "https://commons.wikimedia.org/wiki/File:LL-Q150_(fra)-Lepticed7-cependant.wav"
+  },
+  "v021": {
+    "url": "https://upload.wikimedia.org/wikipedia/commons/b/b7/LL-Q150_%28fra%29-LoquaxFR-gr%C3%A2ce_%C3%A0.wav",
+    "author": "LoquaxFR",
+    "license": "CC BY-SA 4.0",
+    "source": "Lingua Libre",
+    "page": "https://commons.wikimedia.org/wiki/File:LL-Q150_(fra)-LoquaxFR-gr%C3%A2ce_%C3%A0.wav"
+  },
+  "v022": {
+    "url": "https://upload.wikimedia.org/wikipedia/commons/3/37/LL-Q150_%28fra%29-Yug-%C3%A0_cause_de.wav",
+    "author": "Yug",
+    "license": "CC0",
+    "source": "Lingua Libre",
+    "page": "https://commons.wikimedia.org/wiki/File:LL-Q150_(fra)-Yug-%C3%A0_cause_de.wav"
+  },
+  "v024": {
+    "url": "https://upload.wikimedia.org/wikipedia/commons/3/31/LL-Q150_%28fra%29-Lyoko%C3%AF-afin_de.wav",
+    "author": "Lyokoï",
+    "license": "CC BY-SA 4.0",
+    "source": "Lingua Libre",
+    "page": "https://commons.wikimedia.org/wiki/File:LL-Q150_(fra)-Lyoko%C3%AF-afin_de.wav"
+  },
+  "v025": {
+    "url": "https://upload.wikimedia.org/wikipedia/commons/b/bc/LL-Q150_%28fra%29-LoquaxFR-%C3%A0_mon_avis.wav",
+    "author": "LoquaxFR",
+    "license": "CC BY-SA 4.0",
+    "source": "Lingua Libre",
+    "page": "https://commons.wikimedia.org/wiki/File:LL-Q150_(fra)-LoquaxFR-%C3%A0_mon_avis.wav"
+  },
+  "v027": {
+    "url": "https://upload.wikimedia.org/wikipedia/commons/7/70/LL-Q150_%28fra%29-VictorDtmtc-enjeu.wav",
+    "author": "VictorDtmtc",
+    "license": "CC BY-SA 4.0",
+    "source": "Lingua Libre",
+    "page": "https://commons.wikimedia.org/wiki/File:LL-Q150_(fra)-VictorDtmtc-enjeu.wav"
+  },
+  "v028": {
+    "url": "https://upload.wikimedia.org/wikipedia/commons/a/aa/LL-Q150_%28fra%29-Jules78120-r%C3%A9chauffement_climatique.wav",
+    "author": "Jules78120",
+    "license": "CC0",
+    "source": "Lingua Libre",
+    "page": "https://commons.wikimedia.org/wiki/File:LL-Q150_(fra)-Jules78120-r%C3%A9chauffement_climatique.wav"
+  },
+  "v029": {
+    "url": "https://upload.wikimedia.org/wikipedia/commons/c/ca/LL-Q150_%28fra%29-X-Javier-mesure.wav",
+    "author": "X-Javier",
+    "license": "CC BY-SA 4.0",
+    "source": "Lingua Libre",
+    "page": "https://commons.wikimedia.org/wiki/File:LL-Q150_(fra)-X-Javier-mesure.wav"
+  },
+  "v030": {
+    "url": "https://upload.wikimedia.org/wikipedia/commons/c/cb/LL-Q150_%28fra%29-LoquaxFR-citoyen.wav",
+    "author": "LoquaxFR",
+    "license": "CC BY-SA 4.0",
+    "source": "Lingua Libre",
+    "page": "https://commons.wikimedia.org/wiki/File:LL-Q150_(fra)-LoquaxFR-citoyen.wav"
+  },
+  "v031": {
+    "url": "https://upload.wikimedia.org/wikipedia/commons/7/70/LL-Q150_%28fra%29-DSwissK-b%C3%A9n%C3%A9vole.wav",
+    "author": "DSwissK",
+    "license": "CC BY-SA 4.0",
+    "source": "Lingua Libre",
+    "page": "https://commons.wikimedia.org/wiki/File:LL-Q150_(fra)-DSwissK-b%C3%A9n%C3%A9vole.wav"
+  },
+  "v032": {
+    "url": "https://upload.wikimedia.org/wikipedia/commons/4/4d/LL-Q150_%28fra%29-DenisdeShawi-entreprise.wav",
+    "author": "DenisdeShawi",
+    "license": "CC BY-SA 4.0",
+    "source": "Lingua Libre",
+    "page": "https://commons.wikimedia.org/wiki/File:LL-Q150_(fra)-DenisdeShawi-entreprise.wav"
+  },
+  "v033": {
+    "url": "https://upload.wikimedia.org/wikipedia/commons/3/34/LL-Q150_%28fra%29-J%C3%A9r%C3%A9my-G%C3%BCnther-Heinz_J%C3%A4hnick-cong%C3%A9.wav",
+    "author": "Jérémy-Günther-Heinz Jähnick",
+    "license": "CC BY-SA 4.0",
+    "source": "Lingua Libre",
+    "page": "https://commons.wikimedia.org/wiki/File:LL-Q150_(fra)-J%C3%A9r%C3%A9my-G%C3%BCnther-Heinz_J%C3%A4hnick-cong%C3%A9.wav"
+  },
+  "v034": {
+    "url": "https://upload.wikimedia.org/wikipedia/commons/e/e0/LL-Q150_%28fra%29-Arthur_Crbz-plaindre.wav",
+    "author": "Arthur Crbz",
+    "license": "CC BY-SA 4.0",
+    "source": "Lingua Libre",
+    "page": "https://commons.wikimedia.org/wiki/File:LL-Q150_(fra)-Arthur_Crbz-plaindre.wav"
+  },
+  "v036": {
+    "url": "https://upload.wikimedia.org/wikipedia/commons/c/cc/LL-Q150_%28fra%29-WikiLucas00-rendre_compte.wav",
+    "author": "WikiLucas00",
+    "license": "CC BY-SA 4.0",
+    "source": "Lingua Libre",
+    "page": "https://commons.wikimedia.org/wiki/File:LL-Q150_(fra)-WikiLucas00-rendre_compte.wav"
+  },
+  "v037": {
+    "url": "https://upload.wikimedia.org/wikipedia/commons/d/d1/LL-Q150_%28fra%29-Poslovitch-davantage.wav",
+    "author": "Poslovitch",
+    "license": "CC0",
+    "source": "Lingua Libre",
+    "page": "https://commons.wikimedia.org/wiki/File:LL-Q150_(fra)-Poslovitch-davantage.wav"
+  },
+  "v038": {
+    "url": "https://upload.wikimedia.org/wikipedia/commons/d/da/LL-Q150_%28fra%29-Jules78120-dor%C3%A9navant.wav",
+    "author": "Jules78120",
+    "license": "CC0",
+    "source": "Lingua Libre",
+    "page": "https://commons.wikimedia.org/wiki/File:LL-Q150_(fra)-Jules78120-dor%C3%A9navant.wav"
+  },
+  "v039": {
+    "url": "https://upload.wikimedia.org/wikipedia/commons/5/55/LL-Q150_%28fra%29-0x010C-courriel.wav",
+    "author": "0x010C",
+    "license": "CC BY-SA 4.0",
+    "source": "Lingua Libre",
+    "page": "https://commons.wikimedia.org/wiki/File:LL-Q150_(fra)-0x010C-courriel.wav"
+  },
+  "v040": {
+    "url": "https://upload.wikimedia.org/wikipedia/commons/2/2f/LL-Q150_%28fra%29-DenisdeShawi-fin_de_semaine.wav",
+    "author": "DenisdeShawi",
+    "license": "CC BY-SA 4.0",
+    "source": "Lingua Libre",
+    "page": "https://commons.wikimedia.org/wiki/File:LL-Q150_(fra)-DenisdeShawi-fin_de_semaine.wav"
+  },
+  "v041": {
+    "url": "https://upload.wikimedia.org/wikipedia/commons/6/6e/LL-Q150_%28fra%29-VictorDtmtc-hausse.wav",
+    "author": "VictorDtmtc",
+    "license": "CC BY-SA 4.0",
+    "source": "Lingua Libre",
+    "page": "https://commons.wikimedia.org/wiki/File:LL-Q150_(fra)-VictorDtmtc-hausse.wav"
+  },
+  "v042": {
+    "url": "https://upload.wikimedia.org/wikipedia/commons/3/3e/LL-Q150_%28fra%29-Eihel-salaire.wav",
+    "author": "Eihel",
+    "license": "CC BY-SA 3.0",
+    "source": "Lingua Libre",
+    "page": "https://commons.wikimedia.org/wiki/File:LL-Q150_(fra)-Eihel-salaire.wav"
+  },
+  "v043": {
+    "url": "https://upload.wikimedia.org/wikipedia/commons/2/23/LL-Q150_%28fra%29-Lepticed7-imp%C3%B4t.wav",
+    "author": "Lepticed7",
+    "license": "CC BY-SA 4.0",
+    "source": "Lingua Libre",
+    "page": "https://commons.wikimedia.org/wiki/File:LL-Q150_(fra)-Lepticed7-imp%C3%B4t.wav"
+  },
+  "v044": {
+    "url": "https://upload.wikimedia.org/wikipedia/commons/0/02/LL-Q150_%28fra%29-Sartus85-revenu.wav",
+    "author": "Sartus85",
+    "license": "CC BY-SA 4.0",
+    "source": "Lingua Libre",
+    "page": "https://commons.wikimedia.org/wiki/File:LL-Q150_(fra)-Sartus85-revenu.wav"
+  },
+  "v045": {
+    "url": "https://upload.wikimedia.org/wikipedia/commons/f/f9/LL-Q150_%28fra%29-LoquaxFR-locataire.wav",
+    "author": "LoquaxFR",
+    "license": "CC BY-SA 4.0",
+    "source": "Lingua Libre",
+    "page": "https://commons.wikimedia.org/wiki/File:LL-Q150_(fra)-LoquaxFR-locataire.wav"
+  },
+  "v046": {
+    "url": "https://upload.wikimedia.org/wikipedia/commons/4/4b/LL-Q150_%28fra%29-LoquaxFR-propri%C3%A9taire.wav",
+    "author": "LoquaxFR",
+    "license": "CC BY-SA 4.0",
+    "source": "Lingua Libre",
+    "page": "https://commons.wikimedia.org/wiki/File:LL-Q150_(fra)-LoquaxFR-propri%C3%A9taire.wav"
+  },
+  "v047": {
+    "url": "https://upload.wikimedia.org/wikipedia/commons/a/a9/LL-Q150_%28fra%29-DSwissK-bail.wav",
+    "author": "DSwissK",
+    "license": "CC BY-SA 4.0",
+    "source": "Lingua Libre",
+    "page": "https://commons.wikimedia.org/wiki/File:LL-Q150_(fra)-DSwissK-bail.wav"
+  },
+  "v048": {
+    "url": "https://upload.wikimedia.org/wikipedia/commons/6/61/LL-Q150_%28fra%29-WikiLucas00-d%C3%A9m%C3%A9nager.wav",
+    "author": "WikiLucas00",
+    "license": "CC BY-SA 4.0",
+    "source": "Lingua Libre",
+    "page": "https://commons.wikimedia.org/wiki/File:LL-Q150_(fra)-WikiLucas00-d%C3%A9m%C3%A9nager.wav"
+  },
+  "v049": {
+    "url": "https://upload.wikimedia.org/wikipedia/commons/9/91/LL-Q150_%28fra%29-0x010C-voisin.wav",
+    "author": "0x010C",
+    "license": "CC BY-SA 4.0",
+    "source": "Lingua Libre",
+    "page": "https://commons.wikimedia.org/wiki/File:LL-Q150_(fra)-0x010C-voisin.wav"
+  },
+  "v050": {
+    "url": "https://upload.wikimedia.org/wikipedia/commons/d/d6/LL-Q150_%28fra%29-Lepticed7-stage.wav",
+    "author": "Lepticed7",
+    "license": "CC BY-SA 4.0",
+    "source": "Lingua Libre",
+    "page": "https://commons.wikimedia.org/wiki/File:LL-Q150_(fra)-Lepticed7-stage.wav"
+  },
+  "v052": {
+    "url": "https://upload.wikimedia.org/wikipedia/commons/0/00/LL-Q150_%28fra%29-WikiLucas00-embaucher.wav",
+    "author": "WikiLucas00",
+    "license": "CC BY-SA 4.0",
+    "source": "Lingua Libre",
+    "page": "https://commons.wikimedia.org/wiki/File:LL-Q150_(fra)-WikiLucas00-embaucher.wav"
+  },
+  "v053": {
+    "url": "https://upload.wikimedia.org/wikipedia/commons/4/40/LL-Q150_%28fra%29-WikiLucas00-d%C3%A9missionner.wav",
+    "author": "WikiLucas00",
+    "license": "CC BY-SA 4.0",
+    "source": "Lingua Libre",
+    "page": "https://commons.wikimedia.org/wiki/File:LL-Q150_(fra)-WikiLucas00-d%C3%A9missionner.wav"
+  },
+  "v054": {
+    "url": "https://upload.wikimedia.org/wikipedia/commons/3/34/LL-Q150_%28fra%29-Poslovitch-coll%C3%A8gue.wav",
+    "author": "Poslovitch",
+    "license": "CC0",
+    "source": "Lingua Libre",
+    "page": "https://commons.wikimedia.org/wiki/File:LL-Q150_(fra)-Poslovitch-coll%C3%A8gue.wav"
+  },
+  "v055": {
+    "url": "https://upload.wikimedia.org/wikipedia/commons/2/2d/LL-Q150_%28fra%29-Lepticed7-r%C3%A9union.wav",
+    "author": "Lepticed7",
+    "license": "CC BY-SA 4.0",
+    "source": "Lingua Libre",
+    "page": "https://commons.wikimedia.org/wiki/File:LL-Q150_(fra)-Lepticed7-r%C3%A9union.wav"
+  },
+  "v056": {
+    "url": "https://upload.wikimedia.org/wikipedia/commons/b/b8/LL-Q150_%28fra%29-Beno%C3%AEt_Prieur-horaire.wav",
+    "author": "Benoît Prieur",
+    "license": "CC0",
+    "source": "Lingua Libre",
+    "page": "https://commons.wikimedia.org/wiki/File:LL-Q150_(fra)-Beno%C3%AEt_Prieur-horaire.wav"
+  },
+  "v058": {
+    "url": "https://upload.wikimedia.org/wikipedia/commons/a/a9/LL-Q150_%28fra%29-Sartus85-assurance.wav",
+    "author": "Sartus85",
+    "license": "CC BY-SA 4.0",
+    "source": "Lingua Libre",
+    "page": "https://commons.wikimedia.org/wiki/File:LL-Q150_(fra)-Sartus85-assurance.wav"
+  },
+  "v059": {
+    "url": "https://upload.wikimedia.org/wikipedia/commons/c/ce/LL-Q150_%28fra%29-DSwissK-ordonnance.wav",
+    "author": "DSwissK",
+    "license": "CC BY-SA 4.0",
+    "source": "Lingua Libre",
+    "page": "https://commons.wikimedia.org/wiki/File:LL-Q150_(fra)-DSwissK-ordonnance.wav"
+  },
+  "v060": {
+    "url": "https://upload.wikimedia.org/wikipedia/commons/e/e3/LL-Q150_%28fra%29-DenisdeShawi-sant%C3%A9.wav",
+    "author": "DenisdeShawi",
+    "license": "CC BY-SA 4.0",
+    "source": "Lingua Libre",
+    "page": "https://commons.wikimedia.org/wiki/File:LL-Q150_(fra)-DenisdeShawi-sant%C3%A9.wav"
+  },
+  "v061": {
+    "url": "https://upload.wikimedia.org/wikipedia/commons/6/61/LL-Q150_%28fra%29-Lyoko%C3%AF-urgentiste.wav",
+    "author": "Lyokoï",
+    "license": "CC BY-SA 4.0",
+    "source": "Lingua Libre",
+    "page": "https://commons.wikimedia.org/wiki/File:LL-Q150_(fra)-Lyoko%C3%AF-urgentiste.wav"
+  },
+  "v062": {
+    "url": "https://upload.wikimedia.org/wikipedia/commons/1/18/LL-Q150_%28fra%29-Ltrlg-attente.wav",
+    "author": "Ltrlg",
+    "license": "CC BY-SA 4.0",
+    "source": "Lingua Libre",
+    "page": "https://commons.wikimedia.org/wiki/File:LL-Q150_(fra)-Ltrlg-attente.wav"
+  },
+  "v063": {
+    "url": "https://upload.wikimedia.org/wikipedia/commons/7/78/LL-Q150_%28fra%29-DSwissK-d%C3%A9lai.wav",
+    "author": "DSwissK",
+    "license": "CC BY-SA 4.0",
+    "source": "Lingua Libre",
+    "page": "https://commons.wikimedia.org/wiki/File:LL-Q150_(fra)-DSwissK-d%C3%A9lai.wav"
+  },
+  "v064": {
+    "url": "https://upload.wikimedia.org/wikipedia/commons/0/0f/LL-Q150_%28fra%29-WikiLucas00-inscription.wav",
+    "author": "WikiLucas00",
+    "license": "CC BY-SA 4.0",
+    "source": "Lingua Libre",
+    "page": "https://commons.wikimedia.org/wiki/File:LL-Q150_(fra)-WikiLucas00-inscription.wav"
+  },
+  "v065": {
+    "url": "https://upload.wikimedia.org/wikipedia/commons/4/4f/LL-Q150_%28fra%29-Lepticed7-inscrire.wav",
+    "author": "Lepticed7",
+    "license": "CC BY-SA 4.0",
+    "source": "Lingua Libre",
+    "page": "https://commons.wikimedia.org/wiki/File:LL-Q150_(fra)-Lepticed7-inscrire.wav"
+  },
+  "v066": {
+    "url": "https://upload.wikimedia.org/wikipedia/commons/d/d0/LL-Q150_%28fra%29-Lepticed7-dossier.wav",
+    "author": "Lepticed7",
+    "license": "CC BY-SA 4.0",
+    "source": "Lingua Libre",
+    "page": "https://commons.wikimedia.org/wiki/File:LL-Q150_(fra)-Lepticed7-dossier.wav"
+  },
+  "v067": {
+    "url": "https://upload.wikimedia.org/wikipedia/commons/4/49/LL-Q150_%28fra%29-Sagnamadr-pi%C3%A8ce_d%27identit%C3%A9.wav",
+    "author": "Sagnamadr",
+    "license": "CC BY-SA 4.0",
+    "source": "Lingua Libre",
+    "page": "https://commons.wikimedia.org/wiki/File:LL-Q150_(fra)-Sagnamadr-pi%C3%A8ce_d%27identit%C3%A9.wav"
+  },
+  "v068": {
+    "url": "https://upload.wikimedia.org/wikipedia/commons/5/53/LL-Q150_%28fra%29-Lepticed7-permis_de_conduire.wav",
+    "author": "Lepticed7",
+    "license": "CC BY-SA 4.0",
+    "source": "Lingua Libre",
+    "page": "https://commons.wikimedia.org/wiki/File:LL-Q150_(fra)-Lepticed7-permis_de_conduire.wav"
+  },
+  "v069": {
+    "url": "https://upload.wikimedia.org/wikipedia/commons/0/0a/LL-Q150_%28fra%29-Pamputt-citoyennet%C3%A9.wav",
+    "author": "Pamputt",
+    "license": "CC0",
+    "source": "Lingua Libre",
+    "page": "https://commons.wikimedia.org/wiki/File:LL-Q150_(fra)-Pamputt-citoyennet%C3%A9.wav"
+  },
+  "v071": {
+    "url": "https://upload.wikimedia.org/wikipedia/commons/1/19/LL-Q150_%28fra%29-Lyoko%C3%AF-int%C3%A9grer.wav",
+    "author": "Lyokoï",
+    "license": "CC BY-SA 4.0",
+    "source": "Lingua Libre",
+    "page": "https://commons.wikimedia.org/wiki/File:LL-Q150_(fra)-Lyoko%C3%AF-int%C3%A9grer.wav"
+  },
+  "v073": {
+    "url": "https://upload.wikimedia.org/wikipedia/commons/4/4a/LL-Q150_%28fra%29-0x010C-habitude.wav",
+    "author": "0x010C",
+    "license": "CC BY-SA 4.0",
+    "source": "Lingua Libre",
+    "page": "https://commons.wikimedia.org/wiki/File:LL-Q150_(fra)-0x010C-habitude.wav"
+  },
+  "v074": {
+    "url": "https://upload.wikimedia.org/wikipedia/commons/6/64/LL-Q150_%28fra%29-Pamputt-loisir.wav",
+    "author": "Pamputt",
+    "license": "CC0",
+    "source": "Lingua Libre",
+    "page": "https://commons.wikimedia.org/wiki/File:LL-Q150_(fra)-Pamputt-loisir.wav"
+  },
+  "v075": {
+    "url": "https://upload.wikimedia.org/wikipedia/commons/5/59/LL-Q150_%28fra%29-0x010C-randonn%C3%A9e.wav",
+    "author": "0x010C",
+    "license": "CC BY-SA 4.0",
+    "source": "Lingua Libre",
+    "page": "https://commons.wikimedia.org/wiki/File:LL-Q150_(fra)-0x010C-randonn%C3%A9e.wav"
+  },
+  "v076": {
+    "url": "https://upload.wikimedia.org/wikipedia/commons/c/cf/LL-Q150_%28fra%29-Jules78120-environnement.wav",
+    "author": "Jules78120",
+    "license": "CC0",
+    "source": "Lingua Libre",
+    "page": "https://commons.wikimedia.org/wiki/File:LL-Q150_(fra)-Jules78120-environnement.wav"
+  },
+  "v077": {
+    "url": "https://upload.wikimedia.org/wikipedia/commons/f/f0/LL-Q150_%28fra%29-Pamputt-recyclage.wav",
+    "author": "Pamputt",
+    "license": "CC0",
+    "source": "Lingua Libre",
+    "page": "https://commons.wikimedia.org/wiki/File:LL-Q150_(fra)-Pamputt-recyclage.wav"
+  },
+  "v078": {
+    "url": "https://upload.wikimedia.org/wikipedia/commons/5/5a/LL-Q150_%28fra%29-J%C3%A9r%C3%A9my-G%C3%BCnther-Heinz_J%C3%A4hnick-gaspiller.wav",
+    "author": "Jérémy-Günther-Heinz Jähnick",
+    "license": "CC BY-SA 4.0",
+    "source": "Lingua Libre",
+    "page": "https://commons.wikimedia.org/wiki/File:LL-Q150_(fra)-J%C3%A9r%C3%A9my-G%C3%BCnther-Heinz_J%C3%A4hnick-gaspiller.wav"
+  },
+  "v079": {
+    "url": "https://upload.wikimedia.org/wikipedia/commons/b/b2/LL-Q150_%28fra%29-Poslovitch-ressource.wav",
+    "author": "Poslovitch",
+    "license": "CC0",
+    "source": "Lingua Libre",
+    "page": "https://commons.wikimedia.org/wiki/File:LL-Q150_(fra)-Poslovitch-ressource.wav"
+  },
+  "v080": {
+    "url": "https://upload.wikimedia.org/wikipedia/commons/c/cd/LL-Q150_%28fra%29-Jules78120-durable.wav",
+    "author": "Jules78120",
+    "license": "CC0",
+    "source": "Lingua Libre",
+    "page": "https://commons.wikimedia.org/wiki/File:LL-Q150_(fra)-Jules78120-durable.wav"
+  },
+  "v081": {
+    "url": "https://upload.wikimedia.org/wikipedia/commons/5/52/LL-Q150_%28fra%29-VictorDtmtc-p%C3%A9nurie.wav",
+    "author": "VictorDtmtc",
+    "license": "CC BY-SA 4.0",
+    "source": "Lingua Libre",
+    "page": "https://commons.wikimedia.org/wiki/File:LL-Q150_(fra)-VictorDtmtc-p%C3%A9nurie.wav"
+  },
+  "v083": {
+    "url": "https://upload.wikimedia.org/wikipedia/commons/2/23/LL-Q150_%28fra%29-Lepticed7-sondage.wav",
+    "author": "Lepticed7",
+    "license": "CC BY-SA 4.0",
+    "source": "Lingua Libre",
+    "page": "https://commons.wikimedia.org/wiki/File:LL-Q150_(fra)-Lepticed7-sondage.wav"
+  },
+  "v084": {
+    "url": "https://upload.wikimedia.org/wikipedia/commons/3/34/LL-Q150_%28fra%29-Penegal-%C3%A9tude.wav",
+    "author": "Penegal",
+    "license": "CC BY-SA 4.0",
+    "source": "Lingua Libre",
+    "page": "https://commons.wikimedia.org/wiki/File:LL-Q150_(fra)-Penegal-%C3%A9tude.wav"
+  },
+  "v085": {
+    "url": "https://upload.wikimedia.org/wikipedia/commons/1/1a/LL-Q150_%28fra%29-Lepticed7-chercheur.wav",
+    "author": "Lepticed7",
+    "license": "CC BY-SA 4.0",
+    "source": "Lingua Libre",
+    "page": "https://commons.wikimedia.org/wiki/File:LL-Q150_(fra)-Lepticed7-chercheur.wav"
+  },
+  "v086": {
+    "url": "https://upload.wikimedia.org/wikipedia/commons/f/f1/LL-Q150_%28fra%29-Poslovitch-selon.wav",
+    "author": "Poslovitch",
+    "license": "CC0",
+    "source": "Lingua Libre",
+    "page": "https://commons.wikimedia.org/wiki/File:LL-Q150_(fra)-Poslovitch-selon.wav"
+  },
+  "v088": {
+    "url": "https://upload.wikimedia.org/wikipedia/commons/b/b1/LL-Q150_%28fra%29-DSwissK-n%C3%A9anmoins.wav",
+    "author": "DSwissK",
+    "license": "CC BY-SA 4.0",
+    "source": "Lingua Libre",
+    "page": "https://commons.wikimedia.org/wiki/File:LL-Q150_(fra)-DSwissK-n%C3%A9anmoins.wav"
+  },
+  "v089": {
+    "url": "https://upload.wikimedia.org/wikipedia/commons/7/7f/LL-Q150_%28fra%29-WikiLucas00-pourtant.wav",
+    "author": "WikiLucas00",
+    "license": "CC BY-SA 4.0",
+    "source": "Lingua Libre",
+    "page": "https://commons.wikimedia.org/wiki/File:LL-Q150_(fra)-WikiLucas00-pourtant.wav"
+  },
+  "v090": {
+    "url": "https://upload.wikimedia.org/wikipedia/commons/d/d8/LL-Q150_%28fra%29-Roptat-en_effet.wav",
+    "author": "Roptat",
+    "license": "CC BY-SA 4.0",
+    "source": "Lingua Libre",
+    "page": "https://commons.wikimedia.org/wiki/File:LL-Q150_(fra)-Roptat-en_effet.wav"
+  },
+  "v091": {
+    "url": "https://upload.wikimedia.org/wikipedia/commons/d/df/LL-Q150_%28fra%29-LoquaxFR-autrement_dit.wav",
+    "author": "LoquaxFR",
+    "license": "CC BY-SA 4.0",
+    "source": "Lingua Libre",
+    "page": "https://commons.wikimedia.org/wiki/File:LL-Q150_(fra)-LoquaxFR-autrement_dit.wav"
+  },
+  "v092": {
+    "url": "https://upload.wikimedia.org/wikipedia/commons/a/a4/LL-Q150_%28fra%29-Lyoko%C3%AF-quant_%C3%A0.wav",
+    "author": "Lyokoï",
+    "license": "CC BY-SA 4.0",
+    "source": "Lingua Libre",
+    "page": "https://commons.wikimedia.org/wiki/File:LL-Q150_(fra)-Lyoko%C3%AF-quant_%C3%A0.wav"
+  },
+  "v093": {
+    "url": "https://upload.wikimedia.org/wikipedia/commons/3/37/LL-Q150_%28fra%29-WikiLucas00-%C3%A0_condition_que.wav",
+    "author": "WikiLucas00",
+    "license": "CC BY-SA 4.0",
+    "source": "Lingua Libre",
+    "page": "https://commons.wikimedia.org/wiki/File:LL-Q150_(fra)-WikiLucas00-%C3%A0_condition_que.wav"
+  },
+  "v096": {
+    "url": "https://upload.wikimedia.org/wikipedia/commons/7/71/LL-Q150_%28fra%29-WikiLucas00-mettre_en_place.wav",
+    "author": "WikiLucas00",
+    "license": "CC BY-SA 4.0",
+    "source": "Lingua Libre",
+    "page": "https://commons.wikimedia.org/wiki/File:LL-Q150_(fra)-WikiLucas00-mettre_en_place.wav"
+  },
+  "v100": {
+    "url": "https://upload.wikimedia.org/wikipedia/commons/d/dc/LL-Q150_%28fra%29-Ltrlg-avis.wav",
+    "author": "Ltrlg",
+    "license": "CC BY-SA 4.0",
+    "source": "Lingua Libre",
+    "page": "https://commons.wikimedia.org/wiki/File:LL-Q150_(fra)-Ltrlg-avis.wav"
+  }
+};
 
 export const REAL_EXAMPLES: Record<string, RealExample> = {
   "v006": {

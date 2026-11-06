@@ -9,12 +9,20 @@ import type { RealExample, Recording } from '../src/data/recordings.ts';
 
 const UA = { 'User-Agent': 'JeNeSaisQuiz/1.0 (personal French study app; github.com/yan00126/Je-Ne-Sais-Quiz)' };
 
+const stripTags = (html: string) => html.replace(/<[^>]+>/g, '').trim();
+
+// The Artist field reads "Speaker: <name> Recorder: <name>".
+const speakerOf = (info: any) => stripTags(info.extmetadata?.Artist?.value ?? '').match(/Speaker:\s*(.+)/)?.[1].trim();
+
+const sleep = (ms: number) => new Promise((r) => setTimeout(r, ms));
+
+// Retries server errors and rate limits (Wikimedia answers 429 with a Retry-After in seconds).
 async function json(url: string): Promise<any> {
   for (let tries = 0; ; tries++) {
     const res = await fetch(url, { headers: UA });
     if (res.ok) return res.json();
-    if (tries >= 3 || res.status < 500) throw new Error(`${res.status} ${url}`);
-    await new Promise((r) => setTimeout(r, 2000 * 2 ** tries));
+    if (tries >= 5 || (res.status < 500 && res.status !== 429)) throw new Error(`${res.status} ${url}`);
+    await sleep(Number(res.headers.get('retry-after')) * 1000 || 2000 * 2 ** tries);
   }
 }
 
@@ -38,19 +46,26 @@ async function linguaLibre(fr: string): Promise<Recording | null> {
       prop: 'imageinfo',
       iiprop: 'url|extmetadata',
     });
+    await sleep(1000); // stay well under Wikimedia's rate limit
     const data = await json(`https://commons.wikimedia.org/w/api.php?${q}`);
     const pages: any[] = Object.values(data.query?.pages ?? {});
-    const suffix = `-${norm(form)}.wav`;
-    const page = pages.find((p) => norm(p.title).endsWith(suffix));
-    if (!page) continue;
-    const info = page.imageinfo[0];
-    const speaker = page.title.replace(/^File:LL-Q150 \(fra\)-/, '').split('-')[0];
+    const prefix = 'File:LL-Q150 (fra)-';
+    const suffix = `-${form.replace(/’/g, "'")}.wav`;
+    // Titles are "LL-Q150 (fra)-<speaker>-<word>.wav". A speaker name can contain hyphens and a word can end
+    // like ours ("nu-propriétaire"), so the part before our word must be exactly the file's author.
+    // Case matters too: "Réunion" is the island.
+    const match = pages
+      .map((p) => ({ p, info: p.imageinfo?.[0], speaker: p.title.startsWith(prefix) && p.title.normalize('NFC').endsWith(suffix) ? p.title.slice(prefix.length, -suffix.length) : null }))
+      .find(({ info, speaker }) => speaker && info && speakerOf(info) === speaker.replace(/_/g, ' '));
+    if (!match) continue;
+    const license = match.info.extmetadata?.LicenseShortName?.value;
+    if (!license) continue;
     return {
-      url: info.url,
-      author: speaker,
-      license: info.extmetadata?.LicenseShortName?.value ?? 'CC BY-SA 4.0',
+      url: match.info.url.split('?')[0],
+      author: match.speaker!,
+      license,
       source: 'Lingua Libre',
-      page: info.descriptionurl,
+      page: match.info.descriptionurl,
     };
   }
   return null;
