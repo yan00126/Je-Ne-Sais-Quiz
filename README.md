@@ -18,9 +18,39 @@ A step of the daily plan (about an hour) only counts as done after real work: al
 
 ## Run it on your iPhone
 
+### As a real app (no computer needed)
+
+The app is built in the cloud with EAS and installed through TestFlight. This needs an Apple Developer account
+($99/year) and a free Expo account. One-time setup on the Mac:
+
+```bash
+npm install
+npx eas-cli@latest login               # Expo account
+npx eas-cli@latest init                # links the app to an EAS project (writes projectId to app.json)
+npx eas-cli@latest update:configure    # writes the update URL to app.json
+npm run build:ios                      # cloud build, asks for your Apple ID the first time
+npm run submit:ios                     # uploads the build to TestFlight
+```
+
+Then install **TestFlight** on the iPhone and open the build from there.
+
+After a code change, most updates do not need a new build:
+
+```bash
+npm run update -- --message "what changed"
+```
+
+The app downloads the update in the background and uses it from the next launch. A new build (`build:ios` and
+`submit:ios`) is only needed when a native package is added or `version` in `app.json` changes.
+Data on the phone (progress, recordings) survives both kinds of update.
+
+### With Expo Go (for development)
+
 1. Install **Expo Go** from the App Store.
 2. On your computer (Node 20+): `npm install`, then `npm start`.
 3. Scan the QR code with the iPhone camera.
+
+Expo Go and the TestFlight app are two different apps: data saved in one is not visible in the other.
 
 ## Develop
 
