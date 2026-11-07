@@ -5,6 +5,7 @@ export type Step = {
   skill: Skill;
   title: string;
   detail: string;
+  short: string; // a few words for the Today tiles
   minutes: number;
   target: number; // how many counted attempts finish the step (vocab: the review queue must be empty)
   href: Href;
@@ -20,12 +21,12 @@ export const speakingCounts = (seconds: number, limit: number) => seconds >= lim
 export function todaysPlan(date: Date): Step[] {
   const writingDay = date.getDate() % 2 === 0;
   return [
-    { skill: 'vocab', title: 'Vocabulaire', detail: 'Toutes les cartes du jour', minutes: 10, target: 1, href: '/cards' },
-    { skill: 'listening', title: 'Compréhension orale', detail: '3 documents audio', minutes: 12, target: 3, href: '/practice/listening' },
-    { skill: 'reading', title: 'Compréhension écrite', detail: '3 textes', minutes: 18, target: 3, href: '/practice/reading' },
+    { skill: 'vocab', title: 'Vocabulaire', detail: 'Toutes les cartes du jour', short: 'Cartes du jour', minutes: 10, target: 1, href: '/cards' },
+    { skill: 'listening', title: 'Compréhension orale', detail: '3 documents audio', short: '3 audios', minutes: 12, target: 3, href: '/practice/listening' },
+    { skill: 'reading', title: 'Compréhension écrite', detail: '3 textes', short: '3 textes', minutes: 18, target: 3, href: '/practice/reading' },
     writingDay
-      ? { skill: 'writing', title: 'Expression écrite', detail: '1 tâche, nombre de mots minimum atteint', minutes: 25, target: 1, href: '/practice/writing' }
-      : { skill: 'speaking', title: 'Expression orale', detail: '3 séances : tâche enregistrée (60 % du temps au moins), dialogue guidé ou répétition', minutes: 20, target: 3, href: '/practice/speaking' },
+      ? { skill: 'writing', title: 'Expression écrite', detail: '1 tâche, nombre de mots minimum atteint', short: '1 tâche', minutes: 25, target: 1, href: '/practice/writing' }
+      : { skill: 'speaking', title: 'Expression orale', detail: '3 séances : tâche enregistrée (60 % du temps au moins), dialogue guidé ou répétition', short: '3 séances', minutes: 20, target: 3, href: '/practice/speaking' },
   ];
 }
 

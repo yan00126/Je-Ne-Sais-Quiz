@@ -3,11 +3,18 @@
   "version": "0.1.0",
   "main": "expo-router/entry",
   "dependencies": {
+    "@expo-google-fonts/archivo-black": "^0.4.1",
+    "@expo-google-fonts/baloo-2": "^0.4.2",
+    "@expo-google-fonts/figtree": "^0.4.1",
+    "@expo-google-fonts/nunito": "^0.4.2",
+    "@expo-google-fonts/outfit": "^0.4.3",
+    "@expo-google-fonts/space-grotesk": "^0.4.1",
     "@expo/vector-icons": "^15.0.2",
     "expo": "~58.0.21",
     "expo-audio": "~58.0.10",
     "expo-constants": "~58.0.14",
     "expo-file-system": "~58.0.13",
+    "expo-font": "~58.0.11",
     "expo-haptics": "~58.0.7",
     "expo-linking": "~58.0.15",
     "expo-router": "~58.0.28",
@@ -19,6 +26,7 @@
     "react-native": "0.88.1",
     "react-native-safe-area-context": "~5.10.1",
     "react-native-screens": "~4.30.0",
+    "react-native-svg": "^15.16.0",
     "ts-fsrs": "^5.4.2"
   },
   "devDependencies": {

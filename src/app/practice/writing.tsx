@@ -1,12 +1,13 @@
 import { useSQLiteContext } from 'expo-sqlite';
 import { useEffect, useState } from 'react';
-import { StyleSheet, TextInput, View } from 'react-native';
-import { Body, Button, Card, colors, H2, Screen } from '../../components/ui';
+import { TextInput, View } from 'react-native';
+import { Body, Button, Card, H2, Screen } from '../../components/ui';
 import { WRITING_TASKS, type WritingTask } from '../../data/prompts';
 import { logAttempt, pickNextItem, saveWriting } from '../../lib/db';
 import { markActive } from '../../lib/activity';
 import { writingCounts } from '../../lib/plan';
 import { useStudyTimer } from '../../lib/useStudyTimer';
+import { makeStyles } from '../../theme/ThemeProvider';
 
 // Suggested split of the 60-minute TCF Canada writing test across its three tasks.
 const SUGGESTED_MINUTES: Record<WritingTask['task'], number> = { 1: 10, 2: 20, 3: 30 };
@@ -31,6 +32,7 @@ function mmss(s: number) {
 }
 
 export default function Writing() {
+  const styles = useStyles();
   const db = useSQLiteContext();
   useStudyTimer('writing');
   const [task, setTask] = useState<WritingTask>(WRITING_TASKS[0]);
@@ -128,18 +130,18 @@ export default function Writing() {
   );
 }
 
-const styles = StyleSheet.create({
+const useStyles = makeStyles((t) => ({
   tabs: { flexDirection: 'row', gap: 8 },
   meta: { flexDirection: 'row', justifyContent: 'space-between' },
   input: {
     minHeight: 240,
-    backgroundColor: colors.card,
-    borderRadius: 12,
-    borderWidth: 1,
-    borderColor: colors.border,
+    backgroundColor: t.colors.card,
+    borderRadius: t.radius.field,
+    borderWidth: t.button === 'brutal' ? 2.5 : 1.5,
+    borderColor: t.colors.border,
     padding: 14,
     fontSize: 16,
     lineHeight: 23,
-    color: colors.ink,
+    color: t.colors.ink,
   },
-});
+}));

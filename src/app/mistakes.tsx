@@ -1,14 +1,17 @@
 import { useSQLiteContext } from 'expo-sqlite';
 import { useEffect, useState } from 'react';
-import { StyleSheet, Text, TextInput, View } from 'react-native';
-import { Body, Button, Card, colors, H2, Screen } from '../components/ui';
+import { Text, TextInput, View } from 'react-native';
+import { Body, Button, Card, H2, Screen } from '../components/ui';
 import { LISTENING, READING } from '../data/comprehension';
 import { addCustomWord, getOpenMistakes, markMistakeReviewed, type Mistake } from '../lib/db';
+import { makeStyles, useTheme } from '../theme/ThemeProvider';
 
 const ITEMS = new Map([...READING, ...LISTENING].map((i) => [i.id, i]));
 
 // Wrong answers from listening and reading, kept until marked as understood.
 export default function Mistakes() {
+  const t = useTheme();
+  const styles = useStyles();
   const db = useSQLiteContext();
   const [mistakes, setMistakes] = useState<Mistake[] | null>(null);
 
@@ -37,8 +40,8 @@ export default function Mistakes() {
               {m.skill === 'listening' ? 'Compréhension orale' : 'Compréhension écrite'} · {item.title}
             </Body>
             <H2>{q.prompt}</H2>
-            <Text style={[styles.answer, { color: colors.red }]}>✗ {q.choices[m.picked]}</Text>
-            <Text style={[styles.answer, { color: colors.green }]}>✓ {q.choices[q.answer]}</Text>
+            <Text style={[styles.answer, { color: t.colors.redText }]}>✗ {q.choices[m.picked]}</Text>
+            <Text style={[styles.answer, { color: t.colors.greenText }]}>✓ {q.choices[q.answer]}</Text>
             {q.explanation && <Body>{q.explanation}</Body>}
             <Body muted>{item.text}</Body>
             <Button title="Compris" variant="outline" onPress={() => understood(m.id)} />
@@ -51,6 +54,7 @@ export default function Mistakes() {
 
 // Lets the learner turn an unknown word from a text into a flashcard.
 function AddWord() {
+  const styles = useStyles();
   const db = useSQLiteContext();
   const [fr, setFr] = useState('');
   const [meaning, setMeaning] = useState('');
@@ -76,7 +80,7 @@ function AddWord() {
   );
 }
 
-const styles = StyleSheet.create({
+const useStyles = makeStyles((t) => ({
   answer: { fontSize: 16, fontWeight: '600' },
-  input: { borderWidth: 1, borderColor: colors.border, borderRadius: 10, padding: 12, fontSize: 16, color: colors.ink },
-});
+  input: { borderWidth: t.button === 'brutal' ? 2.5 : 1.5, borderColor: t.colors.border, backgroundColor: t.colors.card, borderRadius: t.radius.field, padding: 12, fontSize: 16, color: t.colors.ink },
+}));

@@ -1,8 +1,10 @@
-import { StyleSheet, View } from 'react-native';
+import { View } from 'react-native';
 import { Button } from './ui';
+import { makeStyles } from '../theme/ThemeProvider';
 
 // Tâche 1 / 2 / 3 switcher, with a tick on the tasks done today.
 export function TaskTabs({ current, done, onPick }: { current: 1 | 2 | 3; done: (n: 1 | 2 | 3) => boolean; onPick: (n: 1 | 2 | 3) => void }) {
+  const styles = useStyles();
   return (
     <View style={styles.tabs}>
       {([1, 2, 3] as const).map((n) => (
@@ -14,6 +16,6 @@ export function TaskTabs({ current, done, onPick }: { current: 1 | 2 | 3; done: 
   );
 }
 
-const styles = StyleSheet.create({
+const useStyles = makeStyles((t) => ({
   tabs: { flexDirection: 'row', gap: 8 },
-});
+}));

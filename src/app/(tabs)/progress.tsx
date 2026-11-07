@@ -1,8 +1,8 @@
 import { router, useFocusEffect } from 'expo-router';
 import { useSQLiteContext } from 'expo-sqlite';
 import { useCallback, useState } from 'react';
-import { StyleSheet, Text, View } from 'react-native';
-import { Body, Button, Card, colors, H2, Screen } from '../../components/ui';
+import { Text, View } from 'react-native';
+import { Body, Button, Card, H2, Label, Screen, tint } from '../../components/ui';
 import { SkillTimeCard, StudyTimeCard, WordsCard } from '../../components/StatsCards';
 import {
   getActiveDays,
@@ -16,6 +16,7 @@ import {
   type SkillStats,
 } from '../../lib/db';
 import { lastDays, minutesBySkill, streak, type Session, type WordTiers } from '../../lib/stats';
+import { makeStyles, useTheme } from '../../theme/ThemeProvider';
 
 const LABELS: Record<Skill, string> = {
   vocab: 'Vocabulaire',
@@ -26,6 +27,8 @@ const LABELS: Record<Skill, string> = {
 };
 
 export default function Progress() {
+  const t = useTheme();
+  const styles = useStyles();
   const db = useSQLiteContext();
   const [stats, setStats] = useState<SkillStats[]>([]);
   const [deck, setDeck] = useState({ learned: 0, due: 0, total: 0 });
@@ -65,6 +68,12 @@ export default function Progress() {
         <Body muted>Réécoutez vos réponses orales et comparez vos prises d’une même phrase.</Body>
         <Button title="Écouter mes enregistrements" variant="outline" onPress={() => router.push('/recordings')} />
       </Card>
+      <Label>Réglages</Label>
+      <Card>
+        <H2>Style de l’appli</H2>
+        <Body muted>Actuel : {t.name}. Changez de look à tout moment : votre plan et vos progrès restent les mêmes.</Body>
+        <Button title="Changer de style" variant="outline" onPress={() => router.push('/style')} />
+      </Card>
       <Card>
         <H2>Voix française</H2>
         <Body muted>Choisissez la voix qui lit les phrases. La meilleure voix installée est choisie automatiquement.</Body>
@@ -92,8 +101,8 @@ export default function Progress() {
   );
 }
 
-const styles = StyleSheet.create({
-  barTrack: { height: 28, borderRadius: 8, backgroundColor: colors.bg, overflow: 'hidden', justifyContent: 'center' },
-  barFill: { position: 'absolute', left: 0, top: 0, bottom: 0, backgroundColor: '#C9D6FA' },
-  barLabel: { paddingHorizontal: 10, color: colors.ink, fontWeight: '600' },
-});
+const useStyles = makeStyles((t) => ({
+  barTrack: { height: 28, borderRadius: 8, backgroundColor: t.colors.track, overflow: 'hidden', justifyContent: 'center', borderWidth: t.button === 'brutal' ? 2 : 0, borderColor: t.colors.ink },
+  barFill: { position: 'absolute', left: 0, top: 0, bottom: 0, backgroundColor: tint(t.colors.accent, 0.35) },
+  barLabel: { paddingHorizontal: 10, color: t.colors.ink, fontWeight: '600' },
+}));
