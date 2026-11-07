@@ -14,11 +14,11 @@ export default function TabsLayout() {
         sceneStyle: { backgroundColor: t.colors.bg },
       }}
     >
-      {/* Today draws its own greeting, so it has no header bar. */}
+      {/* Today and Progrès draw their own titles, so they have no header bar. */}
       <Tabs.Screen name="index" options={{ title: "Aujourd'hui", headerShown: false }} />
       <Tabs.Screen name="cards" options={{ title: 'Vocabulaire' }} />
       <Tabs.Screen name="practice" options={{ title: 'Pratique' }} />
-      <Tabs.Screen name="progress" options={{ title: 'Progrès' }} />
+      <Tabs.Screen name="progress" options={{ title: 'Progrès', headerShown: false }} />
     </Tabs>
   );
 }

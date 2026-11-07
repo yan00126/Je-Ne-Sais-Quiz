@@ -1,6 +1,5 @@
 import { useState } from 'react';
 import { Pressable, Text, View } from 'react-native';
-import type { Skill } from '../lib/db';
 import { DAILY_GOAL_MIN, formatMinutes, type Day, type WordTiers } from '../lib/stats';
 import { Card, H2, tint } from './ui';
 import { makeStyles, useTheme } from '../theme/ThemeProvider';
@@ -26,7 +25,20 @@ function Stat({ value, label }: { value: string; label: string }) {
 
 const CHART_H = 120;
 
-export function StudyTimeCard({ days, streak, tracking }: { days: Day[]; streak: number; tracking: boolean }) {
+// hideStats: the page already shows today / streak / week in its own header, so only the chart is drawn.
+export function StudyTimeCard({
+  days,
+  streak,
+  tracking,
+  title = 'Temps d’étude',
+  hideStats,
+}: {
+  days: Day[];
+  streak: number;
+  tracking: boolean;
+  title?: string;
+  hideStats?: boolean;
+}) {
   const t = useTheme();
   const styles = useStyles();
   const [picked, setPicked] = useState(days.length - 1);
@@ -36,12 +48,14 @@ export function StudyTimeCard({ days, streak, tracking }: { days: Day[]; streak:
   const sel = days[picked] ?? days.at(-1);
   return (
     <Card>
-      <H2>Temps d’étude</H2>
-      <View style={styles.statRow}>
-        <Stat value={formatMinutes(today)} label="aujourd’hui" />
-        <Stat value={`${streak} j`} label={streak > 1 ? 'jours de suite' : 'jour de suite'} />
-        <Stat value={formatMinutes(week)} label="sur 7 jours" />
-      </View>
+      <H2>{title}</H2>
+      {!hideStats && (
+        <View style={styles.statRow}>
+          <Stat value={formatMinutes(today)} label="aujourd’hui" />
+          <Stat value={`${streak} j`} label={streak > 1 ? 'jours de suite' : 'jour de suite'} />
+          <Stat value={formatMinutes(week)} label="sur 7 jours" />
+        </View>
+      )}
       {sel && (
         <Text style={styles.caption}>
           {LONG_DAY.format(sel.date)} : <Text style={styles.captionStrong}>{formatMinutes(sel.minutes)}</Text>
@@ -119,46 +133,6 @@ export function WordsCard({ tiers, newThisWeek, due }: { tiers: WordTiers; newTh
   );
 }
 
-const SKILL_LABELS: Record<Skill, string> = {
-  listening: 'Compréhension orale',
-  reading: 'Compréhension écrite',
-  writing: 'Expression écrite',
-  speaking: 'Expression orale',
-  vocab: 'Vocabulaire',
-};
-
-// Share of time across the four TCF skills, with a tick at 25 %: the four count equally in the exam.
-export function SkillTimeCard({ rows }: { rows: { skill: Skill; minutes: number }[] }) {
-  const styles = useStyles();
-  const four = rows.filter((r) => r.skill !== 'vocab');
-  const vocab = rows.find((r) => r.skill === 'vocab')?.minutes ?? 0;
-  const sum = four.reduce((s, r) => s + r.minutes, 0);
-  return (
-    <Card>
-      <H2>Temps par épreuve</H2>
-      <Text style={styles.note}>Les quatre épreuves comptent autant au TCF : visez environ 25 % chacune (trait vertical).</Text>
-      {four.map((r) => {
-        const pct = sum > 0 ? Math.round((100 * r.minutes) / sum) : 0;
-        return (
-          <View key={r.skill} style={{ gap: 4 }}>
-            <View style={styles.skillHead}>
-              <Text style={styles.legendLabel}>{SKILL_LABELS[r.skill]}</Text>
-              <Text style={styles.legendValue}>
-                {formatMinutes(r.minutes)} · {pct} %
-              </Text>
-            </View>
-            <View style={styles.track}>
-              {pct > 0 && <View style={[styles.fill, { width: `${pct}%` }]} />}
-              <View style={styles.tick} />
-            </View>
-          </View>
-        );
-      })}
-      <Text style={styles.note}>En plus : {formatMinutes(vocab)} de vocabulaire.</Text>
-    </Card>
-  );
-}
-
 const useStyles = makeStyles((t) => ({
   statRow: { flexDirection: 'row', gap: 8 },
   stat: {
@@ -178,7 +152,17 @@ const useStyles = makeStyles((t) => ({
   goalLine: { position: 'absolute', left: 0, right: 0, borderTopWidth: 1, borderStyle: 'dashed', borderColor: t.colors.muted },
   goalLabel: { position: 'absolute', right: 0, bottom: 2, fontSize: 11, color: t.colors.muted },
   barSlot: { flex: 1, height: '100%', alignItems: 'center', justifyContent: 'flex-end' },
-  bar: { width: '60%', maxWidth: 28, backgroundColor: ramp(t).known, borderTopLeftRadius: 4, borderTopRightRadius: 4 },
+  // The bars take each theme's shape: candy pills (Bonbon), outlined blocks (Cahier), signal posts (Métro).
+  bar: {
+    width: '60%',
+    maxWidth: 28,
+    backgroundColor: ramp(t).known,
+    ...(t.id === 'bonbon'
+      ? { borderRadius: 99 }
+      : t.id === 'cahier'
+        ? { borderWidth: 2, borderColor: t.colors.ink, borderBottomWidth: 0 }
+        : { borderTopLeftRadius: 6, borderTopRightRadius: 6 }),
+  },
   barPicked: { backgroundColor: t.colors.accent },
   dayRow: { flexDirection: 'row', gap: 2 },
   dayLabel: { flex: 1, textAlign: 'center', fontSize: 12, color: t.colors.muted },
@@ -190,8 +174,4 @@ const useStyles = makeStyles((t) => ({
   legendLabel: { flex: 1, fontSize: 15, color: t.colors.ink },
   legendHint: { fontSize: 13, color: t.colors.muted },
   legendValue: { fontSize: 15, fontWeight: '600', color: t.colors.ink, fontVariant: ['tabular-nums'] },
-  skillHead: { flexDirection: 'row', alignItems: 'baseline' },
-  track: { height: 10, borderRadius: 5, backgroundColor: t.colors.track, overflow: 'hidden', borderWidth: t.id === 'cahier' ? 1.5 : 0, borderColor: t.colors.ink },
-  fill: { position: 'absolute', left: 0, top: 0, bottom: 0, backgroundColor: t.colors.accent, borderRadius: 5 },
-  tick: { position: 'absolute', left: '25%', top: 0, bottom: 0, width: 2, backgroundColor: t.colors.ink },
 }));
