@@ -279,6 +279,8 @@ function TypedExercise({
             {gaveUp && <Text style={styles.label}>La réponse</Text>}
             <Text style={styles.word}>{reveal.word}</Text>
             {reveal.entry && <Text style={styles.entry}>{reveal.entry}</Text>}
+            {/* Meaning and cloze cards already show the English as the prompt; a dictation never did. */}
+            {kind === 'dictation' && <Text style={styles.meaning}>{card.en}</Text>}
             <Example card={card} />
           </View>
         )}
