@@ -14,7 +14,12 @@ export type ComprehensionItem = {
   questions: Question[];
 };
 
-export const READING: ComprehensionItem[] = [
+import { READING_A2 } from './reading/a2.ts';
+import { READING_B1 } from './reading/b1.ts';
+import { READING_B2 } from './reading/b2.ts';
+import { balanced } from './reading/balance.ts';
+
+const READING_CORE: ComprehensionItem[] = [
   {
     id: 'r001',
     level: 'A2',
@@ -432,6 +437,9 @@ export const READING: ComprehensionItem[] = [
     ],
   },
 ];
+
+// The first 12 texts, then the rest by level (A2, B1, B2).
+export const READING: ComprehensionItem[] = [...READING_CORE, ...balanced([...READING_A2, ...READING_B1, ...READING_B2])];
 
 export const LISTENING: ComprehensionItem[] = [
   {
