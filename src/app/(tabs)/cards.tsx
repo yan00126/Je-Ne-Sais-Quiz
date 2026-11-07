@@ -2,9 +2,9 @@ import Ionicons from '@expo/vector-icons/Ionicons';
 import { useFocusEffect } from 'expo-router';
 import { useSQLiteContext } from 'expo-sqlite';
 import { useCallback, useEffect, useState } from 'react';
-import { Linking, Pressable, StyleSheet, Text, TextInput, View } from 'react-native';
-import { ResultBanner } from '../../components/ResultBanner';
-import { Body, Button, Card, colors, H1, Screen, shade, tap, tint } from '../../components/ui';
+import { Linking, Pressable, Text, TextInput, View } from 'react-native';
+import { outcomeColor, ResultBanner } from '../../components/ResultBanner';
+import { Body, Button, Card, H1, Screen, shade, tap, textColor, tint } from '../../components/ui';
 import { REAL_EXAMPLES, WORD_AUDIO, type Recording } from '../../data/recordings';
 import { clozeReveal, exerciseFor, gradeAnswer, hint, makeCloze, type ExerciseKind, type Verdict } from '../../lib/answer';
 import type { Outcome } from '../../lib/feedback';
@@ -13,12 +13,14 @@ import { markActive } from '../../lib/activity';
 import { play } from '../../lib/audio';
 import { intervalLabel, Rating, review, type Grade } from '../../lib/srs';
 import { useStudyTimer } from '../../lib/useStudyTimer';
+import { makeStyles, useTheme } from '../../theme/ThemeProvider';
+import type { Theme } from '../../theme/themes';
 
-const GRADES: { grade: Grade; label: string; color: string }[] = [
-  { grade: Rating.Again, label: 'À revoir', color: colors.red },
-  { grade: Rating.Hard, label: 'Difficile', color: colors.amber },
-  { grade: Rating.Good, label: 'Bien', color: colors.blue },
-  { grade: Rating.Easy, label: 'Facile', color: colors.green },
+const grades = (t: Theme): { grade: Grade; label: string; color: string }[] => [
+  { grade: Rating.Again, label: 'À revoir', color: t.colors.red },
+  { grade: Rating.Hard, label: 'Difficile', color: t.colors.amber },
+  { grade: Rating.Good, label: 'Bien', color: t.colors.accent },
+  { grade: Rating.Easy, label: 'Facile', color: t.colors.green },
 ];
 
 // The word itself, in a human voice when Lingua Libre has a recording of it.
@@ -79,6 +81,8 @@ export default function Cards() {
 
 // New words: see the word, hear it, then grade yourself.
 function Flashcard({ card, onGrade }: { card: ReviewCard; onGrade: (g: Grade) => void }) {
+  const t = useTheme();
+  const styles = useStyles();
   const [revealed, setRevealed] = useState(false);
   const now = new Date();
   return (
@@ -97,7 +101,7 @@ function Flashcard({ card, onGrade }: { card: ReviewCard; onGrade: (g: Grade) =>
       </Card>
       {revealed ? (
         <View style={styles.grades}>
-          {GRADES.map(({ grade: g, label, color }) => (
+          {grades(t).map(({ grade: g, label, color }) => (
             <GradeButton key={g} label={label} interval={intervalLabel(card, g, now)} color={color} onPress={() => onGrade(g)} />
           ))}
         </View>
@@ -110,6 +114,10 @@ function Flashcard({ card, onGrade }: { card: ReviewCard; onGrade: (g: Grade) =>
 
 // A same-size tile per grade: the label on one line and, under it, when the card comes back.
 function GradeButton({ label, interval, color, onPress }: { label: string; interval: string; color: string; onPress: () => void }) {
+  const t = useTheme();
+  const styles = useStyles();
+  const brutal = t.button === 'brutal';
+  const fg = brutal ? t.colors.ink : shade(textColor(t, color), 0.1);
   return (
     <Pressable
       accessibilityRole="button"
@@ -120,14 +128,18 @@ function GradeButton({ label, interval, color, onPress }: { label: string; inter
       }}
       style={({ pressed }) => [
         styles.grade,
-        { backgroundColor: tint(color), borderColor: tint(color, 0.5), borderBottomColor: shade(color, 0) },
-        pressed && { backgroundColor: tint(color, 0.22), borderBottomWidth: 2, transform: [{ translateY: 2 }] },
+        brutal
+          ? [styles.gradeBrutal, { backgroundColor: color }, pressed && styles.gradeBrutalPressed]
+          : [
+              { backgroundColor: tint(color), borderColor: tint(color, 0.5), borderBottomColor: shade(color, 0) },
+              pressed && { backgroundColor: tint(color, 0.22), borderBottomWidth: 2, transform: [{ translateY: 2 }] },
+            ],
       ]}
     >
-      <Text style={[styles.gradeLabel, { color: shade(color, 0.1) }]} numberOfLines={1} adjustsFontSizeToFit minimumFontScale={0.75}>
+      <Text style={[styles.gradeLabel, { color: fg }]} numberOfLines={1} adjustsFontSizeToFit minimumFontScale={0.75}>
         {label}
       </Text>
-      <Text style={[styles.gradeInterval, { color: shade(color, 0.1) }]}>{interval}</Text>
+      <Text style={[styles.gradeInterval, { color: fg }]}>{interval}</Text>
     </Pressable>
   );
 }
@@ -135,6 +147,8 @@ function GradeButton({ label, interval, color, onPress }: { label: string; inter
 // The example sentence, read aloud when tapped: a real Tatoeba sentence with a human recording
 // when there is one, otherwise the deck's own sentence in the device voice.
 function Example({ card }: { card: ReviewCard }) {
+  const t = useTheme();
+  const styles = useStyles();
   const real = REAL_EXAMPLES[card.id];
   const text = real?.fr ?? card.example;
   if (!text) return null;
@@ -147,9 +161,9 @@ function Example({ card }: { card: ReviewCard }) {
           tap();
           play(text, real?.audio.url);
         }}
-        style={({ pressed }) => [styles.example, pressed && { backgroundColor: tint(colors.blue, 0.08) }]}
+        style={({ pressed }) => [styles.example, pressed && { backgroundColor: tint(t.colors.accent, 0.08) }]}
       >
-        <Ionicons name={real ? 'mic' : 'volume-medium'} size={20} color={colors.blue} />
+        <Ionicons name={real ? 'mic' : 'volume-medium'} size={20} color={t.colors.accentText} />
         <View style={{ flex: 1, gap: 2 }}>
           <Text style={styles.exampleText}>{text}</Text>
           {real?.en && <Text style={styles.exampleTranslation}>{real.en}</Text>}
@@ -162,6 +176,7 @@ function Example({ card }: { card: ReviewCard }) {
 
 // Who recorded it and under which licence, linking to the source page. The licences require this.
 function Credit({ rec }: { rec: Recording }) {
+  const styles = useStyles();
   return (
     <Text style={styles.credit} onPress={() => Linking.openURL(rec.page)} accessibilityRole="link">
       Voix : {rec.author} · {rec.source} · {rec.license}
@@ -177,7 +192,6 @@ const PROMPTS: Record<Exclude<ExerciseKind, 'flashcard'>, string> = {
 
 const VERDICT_GRADE: Record<Verdict, Grade> = { correct: Rating.Good, accents: Rating.Hard, wrong: Rating.Again };
 const OUTCOME: Record<Verdict, Outcome> = { correct: 'correct', accents: 'almost', wrong: 'wrong' };
-const OUTCOME_COLOR: Record<Outcome, string> = { correct: colors.green, almost: colors.amber, wrong: colors.red };
 const TITLES: Record<Verdict, string> = { correct: 'Correct !', accents: 'Presque !', wrong: 'Pas tout à fait' };
 
 // Known words: type the answer, graded automatically into the scheduler.
@@ -192,6 +206,8 @@ function TypedExercise({
   cloze: { sentence: string; answer: string } | null;
   onGrade: (g: Grade) => void;
 }) {
+  const t = useTheme();
+  const styles = useStyles();
   const [typed, setTyped] = useState('');
   const [verdict, setVerdict] = useState<Verdict | null>(null);
   const [hints, setHints] = useState(0);
@@ -241,7 +257,7 @@ function TypedExercise({
         )}
         {!gaveUp && (
           <TextInput
-            style={[styles.input, verdict && { borderColor: verdict === 'correct' ? colors.green : verdict === 'accents' ? colors.amber : colors.red }]}
+            style={[styles.input, verdict && { borderColor: verdict === 'correct' ? t.colors.green : verdict === 'accents' ? t.colors.amber : t.colors.red }]}
             value={typed}
             onChangeText={(t) => {
               markActive();
@@ -275,13 +291,13 @@ function TypedExercise({
               <Button
                 title="💡 Indice"
                 variant="outline"
-                color={colors.amber}
+                color={t.colors.amber}
                 disabled={hints >= maxHints}
                 onPress={() => setHints((n) => n + 1)}
               />
             </View>
             <View style={{ flex: 1 }}>
-              <Button title="Je ne sais pas" variant="outline" color={colors.muted} onPress={giveUp} />
+              <Button title="Je ne sais pas" variant="outline" color={t.colors.muted} onPress={giveUp} />
             </View>
           </View>
         </View>
@@ -291,9 +307,9 @@ function TypedExercise({
           title={gaveUp ? 'À retenir' : TITLES[verdict]}
           detail={gaveUp ? undefined : verdict === 'accents' ? 'Attention aux accents' : verdict === 'correct' && hints > 0 ? 'Avec un indice' : undefined}
         >
-          <Button title="Continuer" color={OUTCOME_COLOR[OUTCOME[verdict]]} onPress={() => onGrade(grade())} />
+          <Button title="Continuer" color={outcomeColor(t, OUTCOME[verdict])} onPress={() => onGrade(grade())} />
           {verdict !== 'correct' && !gaveUp && (
-            <Button title="J'avais raison (synonyme)" variant="outline" color={colors.muted} onPress={() => onGrade(Rating.Good)} />
+            <Button title="J'avais raison (synonyme)" variant="outline" color={t.colors.muted} onPress={() => onGrade(Rating.Good)} />
           )}
         </ResultBanner>
       )}
@@ -301,25 +317,25 @@ function TypedExercise({
   );
 }
 
-const styles = StyleSheet.create({
+const useStyles = makeStyles((t) => ({
   flashcard: { minHeight: 260, justifyContent: 'center', alignItems: 'stretch' },
-  label: { fontSize: 13, fontWeight: '600', color: colors.muted, textAlign: 'center', textTransform: 'uppercase' },
-  word: { fontSize: 30, fontWeight: '700', textAlign: 'center', color: colors.ink, marginBottom: 8 },
-  entry: { fontSize: 16, textAlign: 'center', color: colors.muted, marginTop: -6, marginBottom: 4 },
-  meaning: { fontSize: 20, fontWeight: '600', textAlign: 'center', color: colors.blue },
-  sentence: { fontSize: 19, lineHeight: 27, textAlign: 'center', color: colors.ink },
-  input: { borderWidth: 2, borderColor: colors.border, borderRadius: 10, padding: 12, fontSize: 20, color: colors.ink, marginTop: 8 },
-  hint: { fontSize: 22, fontWeight: '600', letterSpacing: 3, textAlign: 'center', color: colors.amber, fontVariant: ['tabular-nums'] },
+  label: { fontSize: 13, fontWeight: '600', color: t.colors.muted, textAlign: 'center', textTransform: 'uppercase' },
+  word: { fontFamily: 'head', fontWeight: '800', textTransform: 'none', fontSize: 32, lineHeight: 40, textAlign: 'center', color: t.colors.ink, marginBottom: 8 },
+  entry: { fontSize: 16, textAlign: 'center', color: t.colors.muted, marginTop: -6, marginBottom: 4 },
+  meaning: { fontSize: 20, fontWeight: '600', textAlign: 'center', color: t.colors.accentText },
+  sentence: { fontSize: 19, lineHeight: 27, textAlign: 'center', color: t.colors.ink },
+  input: { borderWidth: t.button === 'brutal' ? 2.5 : 2, borderColor: t.colors.border, backgroundColor: t.colors.card, borderRadius: t.radius.field, padding: 12, fontSize: 20, color: t.colors.ink, marginTop: 8 },
+  hint: { fontSize: 22, fontWeight: '600', letterSpacing: 3, textAlign: 'center', color: t.colors.amberText, fontVariant: ['tabular-nums'] },
   helpRow: { flexDirection: 'row', gap: 8 },
   example: { flexDirection: 'row', gap: 8, alignItems: 'flex-start', padding: 8, borderRadius: 10 },
-  exampleText: { fontSize: 16, lineHeight: 23, color: colors.muted },
-  exampleTranslation: { fontSize: 14, lineHeight: 20, color: colors.muted, fontStyle: 'italic', opacity: 0.8 },
-  credit: { fontSize: 11, color: colors.muted, textAlign: 'center', opacity: 0.8 },
+  exampleText: { fontSize: 16, lineHeight: 23, color: t.colors.muted },
+  exampleTranslation: { fontSize: 14, lineHeight: 20, color: t.colors.muted, fontStyle: 'italic', opacity: 0.8 },
+  credit: { fontSize: 11, color: t.colors.muted, textAlign: 'center', opacity: 0.8 },
   grades: { flexDirection: 'row', gap: 8, alignItems: 'flex-start' },
   grade: {
     flex: 1,
     height: 68,
-    borderRadius: 14,
+    borderRadius: t.radius.field,
     borderWidth: 1.5,
     borderBottomWidth: 4,
     alignItems: 'center',
@@ -327,6 +343,8 @@ const styles = StyleSheet.create({
     paddingHorizontal: 4,
     gap: 2,
   },
+  gradeBrutal: { borderWidth: 2.5, borderBottomWidth: 2.5, borderColor: t.colors.ink, boxShadow: `3px 3px 0px ${t.colors.ink}` },
+  gradeBrutalPressed: { boxShadow: `0px 0px 0px ${t.colors.ink}`, transform: [{ translateX: 3 }, { translateY: 3 }] },
   gradeLabel: { fontSize: 15, fontWeight: '700' },
   gradeInterval: { fontSize: 12, fontWeight: '600', opacity: 0.8 },
-});
+}));

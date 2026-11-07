@@ -1,17 +1,20 @@
 import { useSQLiteContext } from 'expo-sqlite';
 import { useEffect, useState } from 'react';
-import { StyleSheet, Text, View } from 'react-native';
+import { Text, View } from 'react-native';
 import { TaskTabs } from '../../components/TaskTabs';
-import { Body, Button, Card, colors, H2, Screen } from '../../components/ui';
+import { Body, Button, Card, H2, Screen } from '../../components/ui';
 import { DIALOGUES, shadowingLines, type Dialogue } from '../../data/dialogues';
 import { getItemsDoneToday, logAttempt, pickNextItem } from '../../lib/db';
 import { useStudyTimer } from '../../lib/useStudyTimer';
 import { speakFr, useRecording } from '../../lib/useRecording';
+import { makeStyles, useTheme } from '../../theme/ThemeProvider';
 
 const itemId = (d: Dialogue) => `sh-${d.id}`;
 
 // Shadowing: listen to a sentence from a model answer, repeat it out loud, then compare.
 export default function Shadowing() {
+  const t = useTheme();
+  const styles = useStyles();
   const db = useSQLiteContext();
   const [dialogue, setDialogue] = useState<Dialogue>(DIALOGUES[0]);
   const [index, setIndex] = useState(0);
@@ -89,13 +92,13 @@ export default function Shadowing() {
                 <Button title="🐢 Lentement" variant="outline" onPress={() => speakFr(line, true)} />
               </View>
             </View>
-            <Button title={showText ? 'Masquer le texte' : 'Afficher le texte'} variant="outline" color={colors.muted} onPress={() => setShowText(!showText)} />
+            <Button title={showText ? 'Masquer le texte' : 'Afficher le texte'} variant="outline" color={t.colors.muted} onPress={() => setShowText(!showText)} />
           </Card>
 
           {rec.isRecording ? (
-            <Button title={`■ Arrêter (${Math.round(rec.seconds)} s)`} color={colors.red} onPress={() => rec.stop({ kind: 'shadowing', itemId: dialogue.id, title: dialogue.title, text: line })} />
+            <Button title={`■ Arrêter (${Math.round(rec.seconds)} s)`} color={t.colors.red} onPress={() => rec.stop({ kind: 'shadowing', itemId: dialogue.id, title: dialogue.title, text: line })} />
           ) : (
-            <Button title={rec.uri ? '● Répéter encore' : '● Répéter'} color={colors.red} onPress={rec.start} />
+            <Button title={rec.uri ? '● Répéter encore' : '● Répéter'} color={t.colors.red} onPress={rec.start} />
           )}
 
           {rec.uri && !rec.isRecording && (
@@ -117,10 +120,10 @@ export default function Shadowing() {
   );
 }
 
-const styles = StyleSheet.create({
+const useStyles = makeStyles((t) => ({
   lineCard: { gap: 12 },
-  counter: { fontSize: 13, fontWeight: '600', color: colors.muted, textAlign: 'center', textTransform: 'uppercase' },
-  line: { fontSize: 22, lineHeight: 31, fontWeight: '600', color: colors.ink, textAlign: 'center' },
-  hidden: { fontSize: 17, color: colors.muted, textAlign: 'center', fontStyle: 'italic', paddingVertical: 12 },
+  counter: { fontSize: 13, fontWeight: '600', color: t.colors.muted, textAlign: 'center', textTransform: 'uppercase' },
+  line: { fontSize: 22, lineHeight: 31, fontWeight: '600', color: t.colors.ink, textAlign: 'center' },
+  hidden: { fontSize: 17, color: t.colors.muted, textAlign: 'center', fontStyle: 'italic', paddingVertical: 12 },
   row: { flexDirection: 'row', gap: 8 },
-});
+}));

@@ -8,13 +8,14 @@ import {
 } from 'expo-audio';
 import { useSQLiteContext } from 'expo-sqlite';
 import { useEffect, useState } from 'react';
-import { Alert, StyleSheet, View } from 'react-native';
-import { Body, Button, Card, colors, H2, Screen } from '../../components/ui';
+import { Alert, View } from 'react-native';
+import { Body, Button, Card, H2, Screen } from '../../components/ui';
 import { SPEAKING_TASKS, type SpeakingTask } from '../../data/prompts';
 import { getItemsDoneToday, logAttempt, pickNextItem } from '../../lib/db';
 import { saveRecording } from '../../lib/recordings';
 import { SPEAKING_MIN_SHARE, speakingCounts } from '../../lib/plan';
 import { useStudyTimer } from '../../lib/useStudyTimer';
+import { makeStyles, useTheme } from '../../theme/ThemeProvider';
 
 function mmss(s: number) {
   const t = Math.max(0, Math.round(s));
@@ -22,6 +23,8 @@ function mmss(s: number) {
 }
 
 export default function Speaking() {
+  const t = useTheme();
+  const styles = useStyles();
   const db = useSQLiteContext();
   const [task, setTask] = useState<SpeakingTask>(SPEAKING_TASKS[0]);
   const [uri, setUri] = useState<string | null>(null);
@@ -111,9 +114,9 @@ export default function Speaking() {
         </H2>
       </Card>
       {state.isRecording ? (
-        <Button title="■ Arrêter" color={colors.red} onPress={stop} />
+        <Button title="■ Arrêter" color={t.colors.red} onPress={stop} />
       ) : (
-        <Button title={uri ? '● Recommencer' : '● Enregistrer'} color={colors.red} onPress={start} />
+        <Button title={uri ? '● Recommencer' : '● Enregistrer'} color={t.colors.red} onPress={start} />
       )}
       {uri && !state.isRecording && (
         <>
@@ -134,6 +137,6 @@ export default function Speaking() {
   );
 }
 
-const styles = StyleSheet.create({
+const useStyles = makeStyles((t) => ({
   tabs: { flexDirection: 'row', gap: 8 },
-});
+}));

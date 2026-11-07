@@ -3,11 +3,12 @@ import { useSQLiteContext } from 'expo-sqlite';
 import { useEffect, useState } from 'react';
 import { Pressable, StyleSheet, Text, View } from 'react-native';
 import { TaskTabs } from '../../components/TaskTabs';
-import { Body, Button, Card, colors, H2, Screen, tint } from '../../components/ui';
+import { Body, Button, Card, H2, Screen, tint } from '../../components/ui';
 import { DIALOGUES, type Dialogue } from '../../data/dialogues';
 import { getItemsDoneToday, logAttempt, pickNextItem } from '../../lib/db';
 import { useStudyTimer } from '../../lib/useStudyTimer';
 import { speakFr, useRecording } from '../../lib/useRecording';
+import { makeStyles, useTheme } from '../../theme/ThemeProvider';
 
 // One line of the conversation so far.
 type Line = { who: 'examiner' | 'you'; text: string };
@@ -15,6 +16,8 @@ type Line = { who: 'examiner' | 'you'; text: string };
 // A guided role-play on a TCF speaking task: the examiner speaks, you answer out loud with hints
 // if you are stuck, then compare with a model answer before moving on.
 export default function DialogueScreen() {
+  const t = useTheme();
+  const styles = useStyles();
   const db = useSQLiteContext();
   const [dialogue, setDialogue] = useState<Dialogue>(DIALOGUES[0]);
   const [turn, setTurn] = useState(0);
@@ -105,7 +108,7 @@ export default function DialogueScreen() {
           {rec.isRecording ? (
             <Button
               title={`■ Arrêter (${Math.round(rec.seconds)} s)`}
-              color={colors.red}
+              color={t.colors.red}
               onPress={() => rec.stop({ kind: 'dialogue', itemId: dialogue.id, title: `${dialogue.title} · ${current.goal}`, text: current.model })}
             />
           ) : rec.uri ? (
@@ -113,7 +116,7 @@ export default function DialogueScreen() {
               <Card style={styles.model}>
                 <Text style={styles.goalLabel}>Exemple de réponse</Text>
                 <Pressable onPress={() => speakFr(current.model)} style={styles.modelRow} accessibilityRole="button">
-                  <Ionicons name="volume-medium" size={20} color={colors.green} />
+                  <Ionicons name="volume-medium" size={20} color={t.colors.greenText} />
                   <Text style={styles.modelText}>{current.model}</Text>
                 </Pressable>
               </Card>
@@ -122,14 +125,14 @@ export default function DialogueScreen() {
                   <Button title="▶︎ Me réécouter" variant="outline" onPress={rec.playMine} />
                 </View>
                 <View style={{ flex: 1 }}>
-                  <Button title="● Réessayer" variant="outline" color={colors.red} onPress={rec.start} />
+                  <Button title="● Réessayer" variant="outline" color={t.colors.red} onPress={rec.start} />
                 </View>
               </View>
               <Button title={turn + 1 < dialogue.turns.length ? 'Continuer →' : 'Terminer'} onPress={next} />
             </>
           ) : (
             <>
-              <Button title="● Répondre" color={colors.red} onPress={rec.start} />
+              <Button title="● Répondre" color={t.colors.red} onPress={rec.start} />
               <View style={styles.row}>
                 {current.examiner && (
                   <View style={{ flex: 1 }}>
@@ -140,7 +143,7 @@ export default function DialogueScreen() {
                   <Button
                     title="💡 Indice"
                     variant="outline"
-                    color={colors.amber}
+                    color={t.colors.amber}
                     disabled={hints >= current.hints.length}
                     onPress={() => setHints(hints + 1)}
                   />
@@ -155,6 +158,7 @@ export default function DialogueScreen() {
 }
 
 function Bubble({ line }: { line: Line }) {
+  const styles = useStyles();
   const mine = line.who === 'you';
   return (
     <Pressable
@@ -168,18 +172,18 @@ function Bubble({ line }: { line: Line }) {
   );
 }
 
-const styles = StyleSheet.create({
+const useStyles = makeStyles((t) => ({
   row: { flexDirection: 'row', gap: 8 },
-  goal: { borderColor: tint(colors.blue, 0.4), borderWidth: 1.5 },
-  goalLabel: { fontSize: 13, fontWeight: '600', color: colors.muted, textTransform: 'uppercase' },
-  goalText: { fontSize: 18, lineHeight: 25, fontWeight: '600', color: colors.ink },
-  hint: { fontSize: 16, lineHeight: 23, color: colors.amber, fontWeight: '600' },
-  model: { borderColor: tint(colors.green, 0.4), borderWidth: 1.5 },
+  goal: { borderColor: tint(t.colors.accent, 0.4), borderWidth: 1.5 },
+  goalLabel: { fontSize: 13, fontWeight: '600', color: t.colors.muted, textTransform: 'uppercase' },
+  goalText: { fontSize: 18, lineHeight: 25, fontWeight: '600', color: t.colors.ink },
+  hint: { fontSize: 16, lineHeight: 23, color: t.colors.amberText, fontWeight: '600' },
+  model: { borderColor: tint(t.colors.green, 0.4), borderWidth: 1.5 },
   modelRow: { flexDirection: 'row', gap: 8, alignItems: 'flex-start' },
-  modelText: { flex: 1, fontSize: 16, lineHeight: 23, color: colors.ink },
+  modelText: { flex: 1, fontSize: 16, lineHeight: 23, color: t.colors.ink },
   bubble: { maxWidth: '88%', borderRadius: 16, paddingVertical: 10, paddingHorizontal: 14, gap: 2 },
-  theirs: { alignSelf: 'flex-start', backgroundColor: colors.card, borderWidth: StyleSheet.hairlineWidth, borderColor: colors.border, borderBottomLeftRadius: 4 },
-  mine: { alignSelf: 'flex-end', backgroundColor: tint(colors.blue, 0.1), borderBottomRightRadius: 4 },
-  who: { fontSize: 11, fontWeight: '700', color: colors.muted, textTransform: 'uppercase' },
-  bubbleText: { fontSize: 16, lineHeight: 22, color: colors.ink },
-});
+  theirs: { alignSelf: 'flex-start', backgroundColor: t.colors.card, borderWidth: StyleSheet.hairlineWidth, borderColor: t.colors.border, borderBottomLeftRadius: 4 },
+  mine: { alignSelf: 'flex-end', backgroundColor: tint(t.colors.accent, 0.1), borderBottomRightRadius: 4 },
+  who: { fontSize: 11, fontWeight: '700', color: t.colors.muted, textTransform: 'uppercase' },
+  bubbleText: { fontSize: 16, lineHeight: 22, color: t.colors.ink },
+}));

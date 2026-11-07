@@ -2,10 +2,11 @@ import Ionicons from '@expo/vector-icons/Ionicons';
 import { setAudioModeAsync, useAudioPlayer } from 'expo-audio';
 import { useSQLiteContext } from 'expo-sqlite';
 import { useCallback, useEffect, useState } from 'react';
-import { Alert, Pressable, StyleSheet, Text, View } from 'react-native';
-import { Body, Button, Card, colors, H2, Screen, tap, tint } from '../components/ui';
+import { Alert, Pressable, Text, View } from 'react-native';
+import { Body, Button, Card, H2, Screen, tap, tint } from '../components/ui';
 import { deleteRecording, getRecordings, KEEP_DAYS, recordingUri, setStarred, type RecordingKind, type SavedRecording } from '../lib/recordings';
 import { speakFr } from '../lib/useRecording';
+import { makeStyles, useTheme } from '../theme/ThemeProvider';
 
 const KIND_LABEL: Record<RecordingKind, string> = { shadowing: 'Répétition', dialogue: 'Dialogue', exam: 'Tâche' };
 
@@ -23,6 +24,8 @@ const duration = (s: number) => (s < 60 ? `${Math.round(s)} s` : `${Math.floor(s
 
 // Every answer you recorded, to hear yourself improve: tap a sentence to see all your takes of it.
 export default function Recordings() {
+  const t = useTheme();
+  const styles = useStyles();
   const db = useSQLiteContext();
   const player = useAudioPlayer(null);
   const [all, setAll] = useState<SavedRecording[] | null>(null);
@@ -73,7 +76,7 @@ export default function Recordings() {
           <Button title="Tous" variant={starredOnly ? 'outline' : 'solid'} onPress={() => setStarredOnly(false)} />
         </View>
         <View style={{ flex: 1 }}>
-          <Button title="★ Favoris" variant={starredOnly ? 'solid' : 'outline'} color={colors.amber} onPress={() => setStarredOnly(true)} />
+          <Button title="★ Favoris" variant={starredOnly ? 'solid' : 'outline'} color={t.colors.amber} onPress={() => setStarredOnly(true)} />
         </View>
       </View>
 
@@ -105,7 +108,7 @@ export default function Recordings() {
                   {clock(r.created_at)} · {duration(r.seconds)}
                 </Text>
                 <Pressable onPress={() => toggleStar(r)} hitSlop={10} accessibilityRole="button" accessibilityLabel={r.starred ? 'Retirer des favoris' : 'Garder en favori'}>
-                  <Ionicons name={r.starred ? 'star' : 'star-outline'} size={22} color={colors.amber} />
+                  <Ionicons name={r.starred ? 'star' : 'star-outline'} size={22} color={t.colors.amberText} />
                 </Pressable>
               </View>
               <Text style={styles.title}>{r.title}</Text>
@@ -120,11 +123,11 @@ export default function Recordings() {
                 </View>
                 {r.kind !== 'exam' && (
                   <View style={{ flex: 1 }}>
-                    <Button title="🔊 Modèle" variant="outline" color={colors.green} onPress={() => speakFr(r.text)} />
+                    <Button title="🔊 Modèle" variant="outline" color={t.colors.green} onPress={() => speakFr(r.text)} />
                   </View>
                 )}
                 <Pressable onPress={() => remove(r)} style={styles.trash} hitSlop={6} accessibilityRole="button" accessibilityLabel="Supprimer">
-                  <Ionicons name="trash-outline" size={20} color={colors.muted} />
+                  <Ionicons name="trash-outline" size={20} color={t.colors.muted} />
                 </Pressable>
               </View>
             </Card>
@@ -137,23 +140,23 @@ export default function Recordings() {
   );
 }
 
-const styles = StyleSheet.create({
+const useStyles = makeStyles((t) => ({
   row: { flexDirection: 'row', gap: 8, alignItems: 'center' },
   meta: { flexDirection: 'row', alignItems: 'center', gap: 8 },
   badge: {
     fontSize: 12,
     fontWeight: '700',
-    color: colors.blue,
-    backgroundColor: tint(colors.blue, 0.1),
+    color: t.colors.accentText,
+    backgroundColor: tint(t.colors.accent, 0.12),
     paddingHorizontal: 8,
     paddingVertical: 3,
     borderRadius: 8,
     overflow: 'hidden',
   },
-  time: { flex: 1, fontSize: 13, color: colors.muted },
-  title: { fontSize: 15, fontWeight: '600', color: colors.ink },
-  text: { fontSize: 16, lineHeight: 23, color: colors.muted },
-  filter: { borderColor: tint(colors.blue, 0.4), borderWidth: 1.5 },
-  filterText: { fontSize: 17, lineHeight: 24, fontWeight: '600', color: colors.ink },
+  time: { flex: 1, fontSize: 13, color: t.colors.muted },
+  title: { fontSize: 15, fontWeight: '600', color: t.colors.ink },
+  text: { fontSize: 16, lineHeight: 23, color: t.colors.muted },
+  filter: { borderColor: tint(t.colors.accent, 0.4), borderWidth: 1.5 },
+  filterText: { fontSize: 17, lineHeight: 24, fontWeight: '600', color: t.colors.ink },
   trash: { width: 44, height: 50, alignItems: 'center', justifyContent: 'center' },
-});
+}));
