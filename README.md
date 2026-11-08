@@ -18,39 +18,50 @@ A step of the daily plan (about an hour) only counts as done after real work: al
 
 ## Run it on your iPhone
 
-### As a real app (no computer needed)
+### From the cloud in Expo Go (free, no computer needed)
 
-The app is built in the cloud with EAS and installed through TestFlight. This needs an Apple Developer account
-($99/year) and a free Expo account. One-time setup on the Mac:
+The app is published to Expo's servers with EAS Update and opened in **Expo Go**. Free Expo account, no Apple
+Developer account. `runtimeVersion` uses the `sdkVersion` policy (`exposdk:58.0.0`), which is what Expo Go accepts.
+
+One-time setup on the Mac:
 
 ```bash
 npm install
 npx eas-cli@latest login               # Expo account
 npx eas-cli@latest init                # links the app to an EAS project (writes projectId to app.json)
 npx eas-cli@latest update:configure    # writes the update URL to app.json
+git add app.json && git commit -m "Link EAS project" && git push
+npm run update -- --message "first version"
+```
+
+Then on the iPhone, sign in to Expo Go with the same Expo account. The app shows up under **Projects**; open it
+and pick the `production` branch. (Or open expo.dev → the project → Updates → the update → **Preview** and scan
+the QR code.) After that, Expo Go lists it under **Recently opened**.
+
+After a code change: `npm run update -- --message "what changed"`. Expo Go loads the new version the next time the
+app is opened. Expo Go's own updates can move to a newer Expo SDK; when that happens, the project's SDK has to be
+upgraded too.
+
+### As a real app with TestFlight
+
+Needs an Apple Developer account ($99/year). After the setup above:
+
+```bash
 npm run build:ios                      # cloud build, asks for your Apple ID the first time
 npm run submit:ios                     # uploads the build to TestFlight
 ```
 
-Then install **TestFlight** on the iPhone and open the build from there.
+Install **TestFlight** on the iPhone and open the build from there. The same `npm run update` reaches it too.
+A new build is only needed when a native package is added.
 
-After a code change, most updates do not need a new build:
-
-```bash
-npm run update -- --message "what changed"
-```
-
-The app downloads the update in the background and uses it from the next launch. A new build (`build:ios` and
-`submit:ios`) is only needed when a native package is added or `version` in `app.json` changes.
-Data on the phone (progress, recordings) survives both kinds of update.
-
-### With Expo Go (for development)
+### With the dev server (for development)
 
 1. Install **Expo Go** from the App Store.
 2. On your computer (Node 20+): `npm install`, then `npm start`.
 3. Scan the QR code with the iPhone camera.
 
-Expo Go and the TestFlight app are two different apps: data saved in one is not visible in the other.
+Data is stored per app and per project: the dev-server version, the cloud version in Expo Go, and the TestFlight
+app each keep their own progress.
 
 ## Develop
 
