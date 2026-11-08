@@ -9,7 +9,10 @@
     "userInterfaceStyle": "light",
     "ios": {
       "supportsTablet": false,
-      "bundleIdentifier": "com.yan00126.jenesaisquiz"
+      "bundleIdentifier": "com.yan00126.jenesaisquiz",
+      "config": {
+        "usesNonExemptEncryption": false
+      }
     },
     "android": {
       "adaptiveIcon": {
@@ -32,6 +35,9 @@
           "microphonePermission": "Je Ne Sais Quiz records your spoken answers so you can practise the TCF speaking tasks."
         }
       ]
-    ]
+    ],
+    "runtimeVersion": {
+      "policy": "sdkVersion"
+    }
   }
 }
