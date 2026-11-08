@@ -42,7 +42,7 @@
     "recordings": "node --experimental-strip-types scripts/fetch-recordings.ts",
     "build:ios": "npx eas-cli@latest build --platform ios --profile production",
     "submit:ios": "npx eas-cli@latest submit --platform ios --latest",
-    "update": "npx eas-cli@latest update --channel production"
+    "update": "npx eas-cli@latest update --channel production --platform ios --environment production"
   },
   "private": true
 }
