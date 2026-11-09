@@ -8,6 +8,9 @@ export const DB_NAME = 'jenesaisquiz.db';
 export const NEW_CARDS_PER_DAY = 15;
 
 export type Skill = 'vocab' | 'listening' | 'reading' | 'writing' | 'speaking';
+// A step of the daily plan. Shadowing is a speaking exercise with its own daily step.
+export type StepId = Skill | 'shadowing';
+export const SHADOWING_PREFIX = 'sh-';
 
 export type ReviewCard = CardRow & Pick<VocabItem, 'fr' | 'en' | 'example'>;
 
@@ -218,13 +221,15 @@ export async function logAttempt(db: SQLiteDatabase, skill: Skill, itemId: strin
   );
 }
 
-// Per skill, how many attempts done today count toward the daily plan.
-export async function getTodayCounts(db: SQLiteDatabase): Promise<Partial<Record<Skill, number>>> {
-  const rows = await db.getAllAsync<{ skill: Skill; n: number }>(
-    'SELECT skill, SUM(counts) AS n FROM attempts WHERE created_at >= ? GROUP BY skill',
+// Per daily step, how many attempts done today count toward the plan. Shadowing sessions are
+// speaking attempts with an 'sh-' item id; they count toward their own step, not the speaking one.
+export async function getTodayCounts(db: SQLiteDatabase): Promise<Partial<Record<StepId, number>>> {
+  const rows = await db.getAllAsync<{ step: StepId; n: number }>(
+    `SELECT CASE WHEN skill = 'speaking' AND item_id LIKE '${SHADOWING_PREFIX}%' THEN 'shadowing' ELSE skill END AS step,
+       SUM(counts) AS n FROM attempts WHERE created_at >= ? GROUP BY step`,
     startOfToday(),
   );
-  return Object.fromEntries(rows.map((r) => [r.skill, r.n]));
+  return Object.fromEntries(rows.map((r) => [r.step, r.n]));
 }
 
 // For speaking: which tasks already have a counted recording today.

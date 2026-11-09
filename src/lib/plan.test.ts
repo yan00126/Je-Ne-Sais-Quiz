@@ -30,3 +30,17 @@ test('short writing and short recordings do not count', () => {
   assert.equal(speakingCounts(10, 120), false);
   assert.equal(speakingCounts(72, 120), true);
 });
+
+test('shadowing is a daily step with its own count', () => {
+  for (const day of [30, 31]) {
+    const shadowing = todaysPlan(new Date(2026, 9, day)).find((s) => s.id === 'shadowing');
+    assert.equal(shadowing?.href, '/practice/shadowing');
+    assert.equal(stepProgress(shadowing!, { speaking: 2 }, 0).done, false);
+    assert.equal(stepProgress(shadowing!, { shadowing: 1 }, 0).done, true);
+  }
+});
+
+test('step ids are unique so the Today tiles have distinct keys', () => {
+  const ids = todaysPlan(new Date(2026, 9, 31)).map((s) => s.id);
+  assert.equal(new Set(ids).size, ids.length);
+});

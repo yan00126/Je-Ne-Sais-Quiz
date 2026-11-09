@@ -4,12 +4,12 @@ import { Text, View } from 'react-native';
 import { TaskTabs } from '../../components/TaskTabs';
 import { Body, Button, Card, H2, Screen } from '../../components/ui';
 import { DIALOGUES, shadowingLines, type Dialogue } from '../../data/dialogues';
-import { getItemsDoneToday, logAttempt, pickNextItem } from '../../lib/db';
+import { SHADOWING_PREFIX, getItemsDoneToday, logAttempt, pickNextItem } from '../../lib/db';
 import { useStudyTimer } from '../../lib/useStudyTimer';
 import { speakFr, useRecording } from '../../lib/useRecording';
 import { makeStyles, useTheme } from '../../theme/ThemeProvider';
 
-const itemId = (d: Dialogue) => `sh-${d.id}`;
+const itemId = (d: Dialogue) => `${SHADOWING_PREFIX}${d.id}`;
 
 // Shadowing: listen to a sentence from a model answer, repeat it out loud, then compare.
 export default function Shadowing() {
