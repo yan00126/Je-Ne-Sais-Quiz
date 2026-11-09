@@ -5,7 +5,7 @@ import { Pressable, ScrollView, Text, View, type ViewStyle } from 'react-native'
 import type { ReactNode } from 'react';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import Svg, { Circle, Path } from 'react-native-svg';
-import type { Skill } from '../lib/db';
+import type { StepId } from '../lib/db';
 import type { Level } from '../lib/level';
 import type { Step } from '../lib/plan';
 import { makeStyles, useTheme } from '../theme/ThemeProvider';
@@ -15,12 +15,13 @@ export type StepState = { step: Step; done: boolean; label: string; n: number; t
 export type TodayData = { steps: StepState[]; minutes: number; streak: number; level: Level | null; now: Date };
 
 type IconName = ComponentProps<typeof Ionicons>['name'];
-const SKILL_ICON: Record<Skill, IconName> = {
+const STEP_ICON: Record<StepId, IconName> = {
   vocab: 'albums-outline',
   listening: 'headset-outline',
   reading: 'book-outline',
   writing: 'create-outline',
   speaking: 'mic-outline',
+  shadowing: 'repeat-outline',
 };
 
 const WEEKDAY = new Intl.DateTimeFormat('fr-FR', { weekday: 'long' });
@@ -95,7 +96,7 @@ export function TodayBonbon({ steps, minutes, streak, level }: TodayData) {
         </View>
         <View style={s.segments}>
           {steps.map((x) => (
-            <View key={x.step.skill} style={s.segment}>
+            <View key={x.step.id} style={s.segment}>
               <View style={[s.segmentFill, { width: `${(100 * x.n) / x.target}%`, backgroundColor: x.done ? '#7CF0C8' : '#FFFFFF' }]} />
             </View>
           ))}
@@ -111,7 +112,7 @@ export function TodayBonbon({ steps, minutes, streak, level }: TodayData) {
           const look = t.skills[x.step.skill];
           return (
             <Pressable
-              key={x.step.skill}
+              key={x.step.id}
               onPress={() => go(x.step.href)}
               accessibilityRole="button"
               accessibilityLabel={`${x.step.title}, ${x.label}`}
@@ -119,14 +120,14 @@ export function TodayBonbon({ steps, minutes, streak, level }: TodayData) {
             >
               <View style={s.tileTop}>
                 <View style={s.tileIcon}>
-                  <Ionicons name={SKILL_ICON[x.step.skill]} size={22} color={look.color} />
+                  <Ionicons name={STEP_ICON[x.step.id]} size={22} color={look.color} />
                 </View>
                 {x.done ? (
                   <View style={[s.check, { backgroundColor: look.color }]}>
                     <Ionicons name="checkmark" size={18} color="#FFFFFF" />
                   </View>
                 ) : (
-                  x.step.skill !== 'vocab' && <Text style={[s.tileCount, { color: look.color }]}>{x.label}</Text>
+                  x.step.id !== 'vocab' && <Text style={[s.tileCount, { color: look.color }]}>{x.label}</Text>
                 )}
               </View>
               <View>
@@ -134,7 +135,7 @@ export function TodayBonbon({ steps, minutes, streak, level }: TodayData) {
                   {x.step.title}
                 </Text>
                 <Text style={[s.tileDetail, { color: look.color }]} numberOfLines={1}>
-                  {x.done ? 'Terminé' : x.step.skill === 'vocab' ? x.label : x.step.short} · {x.step.minutes} min
+                  {x.done ? 'Terminé' : x.step.id === 'vocab' ? x.label : x.step.short} · {x.step.minutes} min
                 </Text>
               </View>
             </Pressable>
@@ -223,7 +224,7 @@ export function TodayCahier({ steps, minutes, streak }: TodayData) {
           const current = i === next;
           return (
             <Pressable
-              key={x.step.skill}
+              key={x.step.id}
               onPress={() => go(x.step.href)}
               accessibilityRole="button"
               accessibilityLabel={`${x.step.title}, ${x.label}`}
@@ -234,7 +235,7 @@ export function TodayCahier({ steps, minutes, streak }: TodayData) {
                 <View style={{ flex: 1 }}>
                   <Text style={[s.rowTitle, x.done && s.struck]}>{x.step.title}</Text>
                   <Text style={s.rowDetail}>
-                    {x.step.skill === 'vocab' && !x.done ? x.label : x.step.short} · {x.step.minutes} min
+                    {x.step.id === 'vocab' && !x.done ? x.label : x.step.short} · {x.step.minutes} min
                   </Text>
                 </View>
                 {x.done ? (
@@ -242,7 +243,7 @@ export function TodayCahier({ steps, minutes, streak }: TodayData) {
                     <Ionicons name="checkmark" size={20} color={t.colors.ink} />
                   </View>
                 ) : (
-                  x.step.skill !== 'vocab' && <Text style={s.count}>{x.label}</Text>
+                  x.step.id !== 'vocab' && <Text style={s.count}>{x.label}</Text>
                 )}
               </View>
               {current && x.target > 1 && (
@@ -383,7 +384,7 @@ export function TodayMetro({ steps, minutes, streak, level, now }: TodayData) {
         </View>
         <View style={s.boardLine}>
           {steps.map((x, i) => (
-            <View key={x.step.skill} style={[s.boardSeg, i === 0 && { flex: 0 }]}>
+            <View key={x.step.id} style={[s.boardSeg, i === 0 && { flex: 0 }]}>
               {i > 0 && <View style={[s.boardRail, { backgroundColor: i <= done ? '#FFFFFF' : 'rgba(255,255,255,0.3)' }]} />}
               <View style={[s.boardStop, x.done ? s.stopDone : i === next ? s.stopNext : s.stopLater]} />
             </View>
@@ -398,7 +399,7 @@ export function TodayMetro({ steps, minutes, streak, level, now }: TodayData) {
           const last = i === steps.length - 1;
           return (
             <Pressable
-              key={x.step.skill}
+              key={x.step.id}
               onPress={() => go(x.step.href)}
               accessibilityRole="button"
               accessibilityLabel={`Station ${i + 1}, ${x.step.title}, ${x.label}`}
@@ -425,13 +426,13 @@ export function TodayMetro({ steps, minutes, streak, level, now }: TodayData) {
                   <View style={{ flex: 1 }}>
                     <Text style={[s.stationTitle, x.done && { color: t.colors.muted }]}>{x.step.title}</Text>
                     <Text style={[s.stationDetail, x.done && { color: t.colors.greenText, fontWeight: '700' }]}>
-                      {x.done ? 'Arrivé' : x.step.skill === 'vocab' ? x.label : x.step.short} · {x.step.minutes} min
+                      {x.done ? 'Arrivé' : x.step.id === 'vocab' ? x.label : x.step.short} · {x.step.minutes} min
                     </Text>
                   </View>
                   {last && !x.done && !isNext ? (
                     <Text style={[s.terminus, { color: look.color, backgroundColor: look.bg }]}>Terminus</Text>
                   ) : (
-                    !x.done && x.step.skill !== 'vocab' && <Text style={[s.stationCount, isNext && { color: look.color }]}>{x.label}</Text>
+                    !x.done && x.step.id !== 'vocab' && <Text style={[s.stationCount, isNext && { color: look.color }]}>{x.label}</Text>
                   )}
                 </View>
                 {isNext && x.target > 1 && (

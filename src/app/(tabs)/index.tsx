@@ -22,8 +22,8 @@ export default function Today() {
         const plan = todaysPlan(now);
         const steps = plan.map((step) => {
           const p = stepProgress(step, counts, vocabLeft);
-          const n = step.skill === 'vocab' ? (p.done ? 1 : 0) : Math.min(counts[step.skill] ?? 0, step.target);
-          return { step, done: p.done, label: p.label, n, target: step.skill === 'vocab' ? 1 : step.target };
+          const n = step.id === 'vocab' ? (p.done ? 1 : 0) : Math.min(counts[step.id] ?? 0, step.target);
+          return { step, done: p.done, label: p.label, n, target: step.id === 'vocab' ? 1 : step.target };
         });
         const level = (await getLevelState(db, 'listening', LISTENING).catch(() => null))?.level ?? null;
         setData({
