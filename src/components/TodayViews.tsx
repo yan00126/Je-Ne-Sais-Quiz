@@ -11,7 +11,8 @@ import type { Step } from '../lib/plan';
 import { makeStyles, useTheme } from '../theme/ThemeProvider';
 import { GridPaper, tap } from './ui';
 
-export type StepState = { step: Step; done: boolean; label: string; n: number; target: number };
+// count: short progress for a tile's corner (« 2/3 », « 48 cartes »).
+export type StepState = { step: Step; done: boolean; label: string; count: string; n: number; target: number };
 export type TodayData = { steps: StepState[]; minutes: number; streak: number; level: Level | null; now: Date };
 
 type IconName = ComponentProps<typeof Ionicons>['name'];
@@ -127,7 +128,7 @@ export function TodayBonbon({ steps, minutes, streak, level }: TodayData) {
                     <Ionicons name="checkmark" size={18} color="#FFFFFF" />
                   </View>
                 ) : (
-                  x.step.id !== 'vocab' && <Text style={[s.tileCount, { color: look.color }]}>{x.label}</Text>
+                  <Text style={[s.tileCount, { color: look.color }]}>{x.count}</Text>
                 )}
               </View>
               <View>
@@ -135,7 +136,7 @@ export function TodayBonbon({ steps, minutes, streak, level }: TodayData) {
                   {x.step.title}
                 </Text>
                 <Text style={[s.tileDetail, { color: look.color }]} numberOfLines={1}>
-                  {x.done ? 'Terminé' : x.step.id === 'vocab' ? x.label : x.step.short} · {x.step.minutes} min
+                  {x.done ? 'Terminé' : x.step.short} · {x.step.minutes} min
                 </Text>
               </View>
             </Pressable>
@@ -235,7 +236,7 @@ export function TodayCahier({ steps, minutes, streak }: TodayData) {
                 <View style={{ flex: 1 }}>
                   <Text style={[s.rowTitle, x.done && s.struck]}>{x.step.title}</Text>
                   <Text style={s.rowDetail}>
-                    {x.step.id === 'vocab' && !x.done ? x.label : x.step.short} · {x.step.minutes} min
+                    {x.step.short} · {x.step.minutes} min
                   </Text>
                 </View>
                 {x.done ? (
@@ -243,7 +244,7 @@ export function TodayCahier({ steps, minutes, streak }: TodayData) {
                     <Ionicons name="checkmark" size={20} color={t.colors.ink} />
                   </View>
                 ) : (
-                  x.step.id !== 'vocab' && <Text style={s.count}>{x.label}</Text>
+                  <Text style={s.count}>{x.count}</Text>
                 )}
               </View>
               {current && x.target > 1 && (
@@ -426,13 +427,13 @@ export function TodayMetro({ steps, minutes, streak, level, now }: TodayData) {
                   <View style={{ flex: 1 }}>
                     <Text style={[s.stationTitle, x.done && { color: t.colors.muted }]}>{x.step.title}</Text>
                     <Text style={[s.stationDetail, x.done && { color: t.colors.greenText, fontWeight: '700' }]}>
-                      {x.done ? 'Arrivé' : x.step.id === 'vocab' ? x.label : x.step.short} · {x.step.minutes} min
+                      {x.done ? 'Arrivé' : x.step.short} · {x.step.minutes} min
                     </Text>
                   </View>
                   {last && !x.done && !isNext ? (
                     <Text style={[s.terminus, { color: look.color, backgroundColor: look.bg }]}>Terminus</Text>
                   ) : (
-                    !x.done && x.step.id !== 'vocab' && <Text style={[s.stationCount, isNext && { color: look.color }]}>{x.label}</Text>
+                    !x.done && <Text style={[s.stationCount, isNext && { color: look.color }]}>{x.count}</Text>
                   )}
                 </View>
                 {isNext && x.target > 1 && (
