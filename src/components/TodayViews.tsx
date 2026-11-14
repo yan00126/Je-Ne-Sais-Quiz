@@ -109,8 +109,10 @@ export function TodayBonbon({ steps, minutes, streak, level }: TodayData) {
       </View>
 
       <View style={s.grid}>
-        {steps.map((x) => {
+        {steps.map((x, i) => {
           const look = t.skills[x.step.skill];
+          // An odd last tile spans the whole row, so it has no neighbour to line up with.
+          const alone = i === steps.length - 1 && steps.length % 2 === 1;
           return (
             <Pressable
               key={x.step.id}
@@ -132,7 +134,7 @@ export function TodayBonbon({ steps, minutes, streak, level }: TodayData) {
                 )}
               </View>
               <View>
-                <Text style={[s.tileTitle, { color: look.ink }]} numberOfLines={2}>
+                <Text style={[s.tileTitle, !alone && s.tileTitlePair, { color: look.ink }]} numberOfLines={2}>
                   {x.step.title}
                 </Text>
                 <Text style={[s.tileDetail, { color: look.color }]} numberOfLines={1}>
@@ -184,6 +186,9 @@ const useBonbon = makeStyles((t) => ({
   check: { width: 28, height: 28, borderRadius: 14, alignItems: 'center', justifyContent: 'center' },
   tileCount: { fontSize: 15, fontWeight: '800' },
   tileTitle: { fontFamily: 'head', fontWeight: '700', fontSize: 18, lineHeight: 21 },
+  // Tiles side by side reserve two title lines, so a one-line title (« Vocabulaire »)
+  // sits as close to its icon as a two-line neighbour and the detail lines align.
+  tileTitlePair: { minHeight: 42 },
   tileDetail: { fontSize: 13, fontWeight: '700' },
   cta: {
     marginTop: 'auto',
