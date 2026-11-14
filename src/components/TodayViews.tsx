@@ -180,7 +180,9 @@ const useBonbon = makeStyles((t) => ({
     overflow: 'hidden',
   },
   grid: { flexDirection: 'row', flexWrap: 'wrap', gap: 12 },
-  tile: { width: '47.5%', flexGrow: 1, minHeight: 140, borderRadius: 26, padding: 16, justifyContent: 'space-between', gap: 12 },
+  // Content stacks from the top: the title sits right under the icon on every tile,
+  // including a full-width last tile, with no stretched gap in between.
+  tile: { width: '47.5%', flexGrow: 1, borderRadius: 26, padding: 16, gap: 12 },
   tileTop: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'flex-start' },
   tileIcon: { width: 42, height: 42, borderRadius: 14, backgroundColor: '#FFFFFF', alignItems: 'center', justifyContent: 'center' },
   check: { width: 28, height: 28, borderRadius: 14, alignItems: 'center', justifyContent: 'center' },
