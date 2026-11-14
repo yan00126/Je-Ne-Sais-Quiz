@@ -3,6 +3,8 @@ import { STARTER_VOCAB, type VocabItem } from '../data/vocab';
 import { newCardRow, type CardRow } from './srs';
 import { currentLevel, type Attempt, type Level, type LevelState } from './level';
 import { dayKey, wordTiers, type Session, type WordTiers } from './stats';
+import type { NumberAnswer } from './numberDrill';
+import type { CategoryId } from './numbers';
 
 export const DB_NAME = 'jenesaisquiz.db';
 export const NEW_CARDS_PER_DAY = 15;
@@ -113,6 +115,24 @@ export async function migrate(db: SQLiteDatabase) {
     await db.execAsync(`
       CREATE TABLE IF NOT EXISTS settings (key TEXT PRIMARY KEY NOT NULL, value TEXT NOT NULL);
       PRAGMA user_version = 5;
+    `);
+  }
+  if (user_version < 6) {
+    // Number dictation answers. score: 1 right, 0.5 right but slow or replayed, 0 wrong. The adaptive
+    // levels are replayed from these rows, so they survive app updates like the rest of the progress.
+    await db.execAsync(`
+      CREATE TABLE IF NOT EXISTS number_answers (
+        id INTEGER PRIMARY KEY AUTOINCREMENT,
+        category TEXT NOT NULL,
+        tier INTEGER NOT NULL,
+        score REAL NOT NULL,
+        expected TEXT NOT NULL,
+        typed TEXT NOT NULL,
+        ms INTEGER NOT NULL,
+        created_at INTEGER NOT NULL
+      );
+      CREATE INDEX IF NOT EXISTS number_answers_created ON number_answers (created_at);
+      PRAGMA user_version = 6;
     `);
   }
   await seedCards(db);
@@ -322,4 +342,19 @@ export async function getWordTiers(db: SQLiteDatabase): Promise<WordTiers> {
 export async function newWordsThisWeek(db: SQLiteDatabase) {
   const row = await db.getFirstAsync<{ n: number }>('SELECT COUNT(*) AS n FROM cards WHERE introduced_at >= ?', startOfToday() - 6 * 86_400_000);
   return row?.n ?? 0;
+}
+
+export async function logNumberAnswer(
+  db: SQLiteDatabase,
+  a: { category: CategoryId; tier: number; score: number; expected: string; typed: string; ms: number },
+) {
+  await db.runAsync(
+    'INSERT INTO number_answers (category, tier, score, expected, typed, ms, created_at) VALUES (?, ?, ?, ?, ?, ?, ?)',
+    a.category, a.tier, a.score, a.expected, a.typed, Math.round(a.ms), Date.now(),
+  );
+}
+
+// Every number dictation answer, oldest first.
+export async function getNumberHistory(db: SQLiteDatabase): Promise<NumberAnswer[]> {
+  return db.getAllAsync<NumberAnswer>('SELECT category, score, created_at AS at FROM number_answers ORDER BY created_at, id');
 }

@@ -1,7 +1,7 @@
 import * as Speech from 'expo-speech';
 import { speak } from '../lib/speech';
 import { useSQLiteContext } from 'expo-sqlite';
-import { useEffect, useState } from 'react';
+import { useEffect, useState, type ReactNode } from 'react';
 import { View } from 'react-native';
 import type { ComprehensionItem } from '../data/comprehension';
 import { getLevelState, getTodayCounts, logAttempt, logMistake, pickNextItem } from '../lib/db';
@@ -11,7 +11,16 @@ import { useStudyTimer } from '../lib/useStudyTimer';
 import { QuizRunner } from './QuizRunner';
 import { Body, Button, Card, H2, Screen } from './ui';
 
-export function ComprehensionSession({ skill, items }: { skill: 'listening' | 'reading'; items: ComprehensionItem[] }) {
+// `header` goes above the document, e.g. the listening mode switcher.
+export function ComprehensionSession({
+  skill,
+  items,
+  header,
+}: {
+  skill: 'listening' | 'reading';
+  items: ComprehensionItem[];
+  header?: ReactNode;
+}) {
   const db = useSQLiteContext();
   useStudyTimer(skill);
   const [item, setItem] = useState<ComprehensionItem | null>(null);
@@ -77,6 +86,7 @@ export function ComprehensionSession({ skill, items }: { skill: 'listening' | 'r
 
   return (
     <Screen>
+      {header}
       <Card>
         <Body muted>
           Niveau {item.level} · {item.title} · aujourd'hui {Math.min(doneToday, target)}/{target}

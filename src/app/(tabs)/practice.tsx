@@ -7,7 +7,7 @@ import type { Skill } from '../../lib/db';
 import { makeStyles, useTheme } from '../../theme/ThemeProvider';
 
 const SKILLS: { title: string; detail: string; skill: Skill; icon: ComponentProps<typeof Ionicons>['name']; href: Href }[] = [
-  { title: 'Compréhension orale', detail: 'Écoutez un document, répondez aux questions', skill: 'listening', icon: 'headset-outline', href: '/practice/listening' },
+  { title: 'Compréhension orale', detail: 'Documents avec questions, ou dictée de nombres', skill: 'listening', icon: 'headset-outline', href: '/practice/listening' },
   { title: 'Compréhension écrite', detail: 'Lisez un texte, répondez aux questions', skill: 'reading', icon: 'book-outline', href: '/practice/reading' },
   { title: 'Expression écrite', detail: 'Tâches 1, 2 et 3 avec minuterie et compteur de mots', skill: 'writing', icon: 'create-outline', href: '/practice/writing' },
   { title: 'Expression orale', detail: 'Tâches 1, 2 et 3 enregistrées', skill: 'speaking', icon: 'mic-outline', href: '/practice/speaking' },
