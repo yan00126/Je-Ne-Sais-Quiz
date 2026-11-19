@@ -1,17 +1,19 @@
 import Ionicons from '@expo/vector-icons/Ionicons';
 import { useFocusEffect } from 'expo-router';
 import { useSQLiteContext } from 'expo-sqlite';
-import { useCallback, useEffect, useState } from 'react';
+import { useCallback, useEffect, useMemo, useState } from 'react';
 import { Linking, Pressable, Text, TextInput, View } from 'react-native';
 import { outcomeColor, ResultBanner } from '../../components/ResultBanner';
 import { Body, Button, Card, H1, Screen, shade, tap, textColor, tint } from '../../components/ui';
 import { REAL_EXAMPLES, WORD_AUDIO, type Recording } from '../../data/recordings';
+import { STARTER_VOCAB, TOPICS } from '../../data/vocab';
+import { choiceOptions, makePool, type ChoiceOption } from '../../lib/distractors';
 import { clozeReveal, exerciseFor, gradeAnswer, hint, makeCloze, type ExerciseKind, type Verdict } from '../../lib/answer';
 import type { Outcome } from '../../lib/feedback';
 import { getStudyQueue, logAttempt, saveReview, type ReviewCard } from '../../lib/db';
 import { markActive } from '../../lib/activity';
 import { play } from '../../lib/audio';
-import { intervalLabel, Rating, review, type Grade } from '../../lib/srs';
+import { intervalLabel, Rating, review, State, type Grade } from '../../lib/srs';
 import { useStudyTimer } from '../../lib/useStudyTimer';
 import { makeStyles, useTheme } from '../../theme/ThemeProvider';
 import type { Theme } from '../../theme/themes';
@@ -22,6 +24,9 @@ const grades = (t: Theme): { grade: Grade; label: string; color: string }[] => [
   { grade: Rating.Good, label: 'Bien', color: t.colors.accent },
   { grade: Rating.Easy, label: 'Facile', color: t.colors.green },
 ];
+
+// Where wrong answers for multiple-choice questions come from: the whole deck, grouped by theme.
+const POOL = makePool(STARTER_VOCAB, TOPICS);
 
 // The word itself, in a human voice when Lingua Libre has a recording of it.
 const sayWord = (card: ReviewCard) => play(card.fr, WORD_AUDIO[card.id]?.url);
@@ -64,7 +69,7 @@ export default function Cards() {
   }
 
   const cloze = makeCloze(card.fr, card.example);
-  const kind = exerciseFor(card.reps, cloze !== null);
+  const kind = exerciseFor(card.reps, cloze !== null, card.state === State.Relearning);
   const key = `${card.id}-${card.reps}-${queue.length}`;
 
   return (
@@ -72,6 +77,8 @@ export default function Cards() {
       <Body muted>{queue.length} carte(s) restante(s)</Body>
       {kind === 'flashcard' ? (
         <Flashcard key={key} card={card} onGrade={grade} />
+      ) : kind === 'choice' || kind === 'clozeChoice' ? (
+        <ChoiceExercise key={key} card={card} cloze={kind === 'clozeChoice' ? cloze : null} onGrade={grade} />
       ) : (
         <TypedExercise key={key} card={card} kind={kind} cloze={cloze} onGrade={grade} />
       )}
@@ -184,7 +191,9 @@ function Credit({ rec }: { rec: Recording }) {
   );
 }
 
-const PROMPTS: Record<Exclude<ExerciseKind, 'flashcard'>, string> = {
+type TypedKind = Exclude<ExerciseKind, 'flashcard' | 'choice' | 'clozeChoice'>;
+
+const PROMPTS: Record<TypedKind, string> = {
   dictation: 'Dictée : écoutez et écrivez le mot',
   meaning: 'Écrivez le mot français',
   cloze: 'Complétez la phrase',
@@ -202,7 +211,7 @@ function TypedExercise({
   onGrade,
 }: {
   card: ReviewCard;
-  kind: Exclude<ExerciseKind, 'flashcard'>;
+  kind: TypedKind;
   cloze: { sentence: string; answer: string } | null;
   onGrade: (g: Grade) => void;
 }) {
@@ -319,6 +328,122 @@ function TypedExercise({
   );
 }
 
+// Pick the right word among four that are easy to confuse with it: look-alikes, words from the
+// same theme, words with a close meaning. With `cloze`, the word goes in the blank of its sentence.
+// After the pick every option shows what it means, so the near misses get learned too.
+function ChoiceExercise({
+  card,
+  cloze,
+  onGrade,
+}: {
+  card: ReviewCard;
+  cloze: { sentence: string; answer: string } | null;
+  onGrade: (g: Grade) => void;
+}) {
+  const t = useTheme();
+  const styles = useStyles();
+  const options = useMemo(
+    () => choiceOptions(card, POOL, `${card.id}:${card.reps}:${card.lapses}`, cloze?.answer),
+    [card.id, card.reps, card.lapses, cloze?.answer],
+  );
+  const [picked, setPicked] = useState<ChoiceOption | 'unknown' | null>(null);
+  const answered = picked !== null;
+  const right = picked !== null && picked !== 'unknown' && picked.correct;
+  const outcome: Outcome = right ? 'correct' : 'wrong';
+
+  function pick(o: ChoiceOption | 'unknown') {
+    markActive();
+    setPicked(o);
+    // Let the result sound finish before the word is read out.
+    setTimeout(() => sayWord(card), 450);
+  }
+
+  return (
+    <>
+      <Card style={[styles.flashcard, styles.choiceCard]}>
+        <Text style={styles.label}>{cloze ? 'Choisissez le mot qui manque' : 'Choisissez le mot français'}</Text>
+        {cloze ? (
+          <>
+            <Text style={styles.sentence}>{answered ? cloze.sentence.replace(/_{4,}/, cloze.answer) : cloze.sentence}</Text>
+            <Body muted>({card.en})</Body>
+          </>
+        ) : (
+          <Text style={styles.meaning}>{card.en}</Text>
+        )}
+        {answered && cloze && clozeReveal(card.fr, cloze).entry && <Text style={styles.entry}>{card.fr}</Text>}
+      </Card>
+      <View style={{ gap: 10 }}>
+        {options.map((o) => (
+          <OptionButton
+            key={o.id}
+            option={o}
+            state={!answered ? 'idle' : o.correct ? 'right' : picked === o ? 'wrong' : 'other'}
+            onPress={() => pick(o)}
+          />
+        ))}
+      </View>
+      {!answered ? (
+        <Button title="Je ne sais pas" variant="outline" color={t.colors.muted} onPress={() => pick('unknown')} />
+      ) : (
+        <>
+          <Example card={card} />
+          <ResultBanner
+            outcome={outcome}
+            title={right ? 'Correct !' : picked === 'unknown' ? 'À retenir' : 'Pas tout à fait'}
+            detail={right || picked === 'unknown' ? undefined : `La réponse : ${options.find((o) => o.correct)!.text}`}
+          >
+            <Button title="Continuer" color={outcomeColor(t, outcome)} onPress={() => onGrade(right ? Rating.Good : Rating.Again)} />
+          </ResultBanner>
+        </>
+      )}
+    </>
+  );
+}
+
+// One answer tile. Once answered: the right one turns green, a wrong pick red, and each shows its meaning.
+function OptionButton({ option, state, onPress }: { option: ChoiceOption; state: 'idle' | 'right' | 'wrong' | 'other'; onPress: () => void }) {
+  const t = useTheme();
+  const styles = useStyles();
+  const brutal = t.button === 'brutal';
+  const mark = state === 'right' ? t.colors.green : state === 'wrong' ? t.colors.red : null;
+  const fg = state === 'right' ? t.colors.greenText : state === 'wrong' ? t.colors.redText : t.colors.ink;
+  return (
+    <Pressable
+      accessibilityRole="button"
+      accessibilityLabel={state === 'idle' ? option.text : `${option.text}, ${option.en}`}
+      accessibilityState={{ disabled: state !== 'idle', selected: state === 'right' || state === 'wrong' }}
+      disabled={state !== 'idle'}
+      onPress={() => {
+        tap();
+        onPress();
+      }}
+      style={({ pressed }) => [
+        styles.option,
+        brutal
+          ? [styles.optionBrutal, { backgroundColor: mark ?? t.colors.card }, pressed && styles.gradeBrutalPressed, state !== 'idle' && styles.optionBrutalDone]
+          : [
+              {
+                backgroundColor: mark ? tint(mark, 0.14) : t.colors.card,
+                borderColor: mark ?? t.colors.border,
+                borderBottomColor: mark ? shade(mark, 0) : shade(t.colors.border, 0.12),
+              },
+              pressed && { borderBottomWidth: 2, transform: [{ translateY: 2 }] },
+              state !== 'idle' && { borderBottomWidth: 2, transform: [{ translateY: 2 }] },
+            ],
+        state === 'other' && { opacity: 0.6 },
+      ]}
+    >
+      <View style={{ flex: 1, gap: 2 }}>
+        <Text style={[styles.optionText, { color: brutal ? t.colors.ink : fg }]}>{option.text}</Text>
+        {state !== 'idle' && <Text style={[styles.optionGloss, { color: brutal ? t.colors.ink : fg }]}>{option.en}</Text>}
+      </View>
+      {(state === 'right' || state === 'wrong') && (
+        <Ionicons name={state === 'right' ? 'checkmark-circle' : 'close-circle'} size={24} color={brutal ? t.colors.ink : fg} />
+      )}
+    </Pressable>
+  );
+}
+
 const useStyles = makeStyles((t) => ({
   flashcard: { minHeight: 260, justifyContent: 'center', alignItems: 'stretch' },
   label: { fontSize: 13, fontWeight: '600', color: t.colors.muted, textAlign: 'center', textTransform: 'uppercase' },
@@ -348,5 +473,21 @@ const useStyles = makeStyles((t) => ({
   gradeBrutal: { borderWidth: 2.5, borderBottomWidth: 2.5, borderColor: t.colors.ink, boxShadow: `3px 3px 0px ${t.colors.ink}` },
   gradeBrutalPressed: { boxShadow: `0px 0px 0px ${t.colors.ink}`, transform: [{ translateX: 3 }, { translateY: 3 }] },
   gradeLabel: { fontSize: 15, fontWeight: '700' },
+  choiceCard: { minHeight: 150, gap: 8 },
+  option: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 10,
+    minHeight: 58,
+    paddingVertical: 12,
+    paddingHorizontal: 16,
+    borderRadius: t.radius.field,
+    borderWidth: 2,
+    borderBottomWidth: 4,
+  },
+  optionBrutal: { borderWidth: 2.5, borderBottomWidth: 2.5, borderColor: t.colors.ink, boxShadow: `3px 3px 0px ${t.colors.ink}` },
+  optionBrutalDone: { boxShadow: `0px 0px 0px ${t.colors.ink}`, transform: [{ translateX: 3 }, { translateY: 3 }] },
+  optionText: { fontSize: 18, fontWeight: '700' },
+  optionGloss: { fontSize: 14, opacity: 0.85 },
   gradeInterval: { fontSize: 12, fontWeight: '600', opacity: 0.8 },
 }));
