@@ -2,12 +2,17 @@ import { test } from 'node:test';
 import assert from 'node:assert/strict';
 import { clozeReveal, exerciseFor, gradeAnswer, headword, hint, makeCloze } from './answer.ts';
 
-test('new words are flashcards, then exercises rotate', () => {
+test('new words are flashcards, then exercises go from picking to typing', () => {
   assert.equal(exerciseFor(0, true), 'flashcard');
-  assert.equal(exerciseFor(1, true), 'dictation');
-  assert.equal(exerciseFor(2, true), 'meaning');
-  assert.equal(exerciseFor(3, true), 'cloze');
-  assert.equal(exerciseFor(3, false), 'dictation');
+  assert.deepEqual([1, 2, 3, 4, 5, 6].map((r) => exerciseFor(r, true)), ['choice', 'clozeChoice', 'dictation', 'meaning', 'cloze', 'choice']);
+  assert.deepEqual([1, 2, 3, 4].map((r) => exerciseFor(r, false)), ['choice', 'dictation', 'meaning', 'choice']);
+});
+
+test('a forgotten word comes back as a multiple-choice question', () => {
+  assert.equal(exerciseFor(4, true, true), 'clozeChoice');
+  assert.equal(exerciseFor(5, true, true), 'choice');
+  assert.equal(exerciseFor(4, false, true), 'choice');
+  assert.equal(exerciseFor(0, true, true), 'flashcard');
 });
 
 test('answers are accepted with or without the article', () => {
