@@ -29,6 +29,25 @@ test('missing accents are flagged, wrong words are wrong', () => {
   assert.equal(gradeAnswer('', 'un logement'), 'wrong');
 });
 
+test('reflexive pronouns are required in typed answers', () => {
+  assert.equal(gradeAnswer('rendre compte', 'se rendre compte (de)'), 'wrong');
+  assert.equal(gradeAnswer('habituer à', 's’habituer à'), 'wrong');
+  assert.equal(gradeAnswer('se rendre compte', 'se rendre compte (de)'), 'correct');
+  assert.equal(gradeAnswer("s'habituer à", 's’habituer à'), 'correct');
+  assert.equal(gradeAnswer("s'habituer a", 's’habituer à'), 'accents');
+  assert.equal(headword('se rendre compte (de)'), 'se rendre compte');
+  assert.equal(headword('s’habituer à'), "s'habituer à");
+});
+
+test('clozes skip partial words and keep searching for a whole match', () => {
+  assert.equal(makeCloze('un art', 'Les artistes arrivent.'), null);
+  assert.equal(makeCloze('une démarche', 'Les démarches prennent du temps.'), null);
+  assert.equal(makeCloze('la plupart de', 'La plupart des Canadiens.'), null);
+  assert.equal(makeCloze('un art', 'Un artiste aime l’art.')?.sentence, 'Un artiste aime l’____.');
+  assert.equal(makeCloze('un art', 'Artiste ou art ?')?.sentence, 'Artiste ou ____ ?');
+  assert.equal(makeCloze('', ''), null);
+});
+
 test('cloze blanks the word inside its example', () => {
   assert.equal(headword('un logement'), 'logement');
   const c = makeCloze('un logement', 'Trouver un logement à Montréal coûte cher.');

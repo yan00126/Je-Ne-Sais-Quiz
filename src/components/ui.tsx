@@ -1,5 +1,6 @@
 import * as Haptics from 'expo-haptics';
-import type { ReactNode } from 'react';
+import Ionicons from '@expo/vector-icons/Ionicons';
+import type { ComponentProps, ReactNode } from 'react';
 import { Pressable, ScrollView, Text, useWindowDimensions, View, type ViewStyle } from 'react-native';
 import { makeStyles, useTheme } from '../theme/ThemeProvider';
 import type { Theme } from '../theme/themes';
@@ -93,6 +94,7 @@ export function Button({
   textColor: textColorProp,
   variant = 'solid',
   disabled,
+  icon,
 }: {
   title: string;
   onPress: () => void;
@@ -100,6 +102,7 @@ export function Button({
   textColor?: string;
   variant?: 'solid' | 'outline';
   disabled?: boolean;
+  icon?: ComponentProps<typeof Ionicons>['name'];
 }) {
   const t = useTheme();
   const s = useStyles();
@@ -118,6 +121,7 @@ export function Button({
       disabled={disabled}
       style={({ pressed }) => [
         s.button,
+        icon && { flexDirection: 'row', gap: 8 },
         brutal
           ? [s.brutal, { backgroundColor: solid ? c : t.colors.card }, pressed && s.brutalPressed]
           : [
@@ -131,6 +135,7 @@ export function Button({
         disabled && { opacity: 0.4 },
       ]}
     >
+      {icon && <Ionicons name={icon} size={20} color={fg} />}
       <Text style={[s.buttonText, { color: fg }]} numberOfLines={1} adjustsFontSizeToFit minimumFontScale={0.75}>
         {title}
       </Text>

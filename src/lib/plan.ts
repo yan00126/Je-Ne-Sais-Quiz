@@ -20,7 +20,8 @@ export const speakingCounts = (seconds: number, limit: number) => seconds >= lim
 // About an hour a day. Vocabulary, listening, reading and a short shadowing session every day;
 // writing and speaking alternate, so over a week all four TCF skills get roughly equal time.
 export function todaysPlan(date: Date): Step[] {
-  const writingDay = date.getDate() % 2 === 0;
+  const day = Date.UTC(date.getFullYear(), date.getMonth(), date.getDate()) / 86_400_000;
+  const writingDay = day % 2 === 0;
   return [
     { id: 'vocab', skill: 'vocab', title: 'Vocabulaire', detail: 'Toutes les cartes du jour', short: 'Cartes du jour', minutes: 10, target: 1, href: '/cards' },
     { id: 'listening', skill: 'listening', title: 'Compréhension orale', detail: '3 documents audio', short: '3 audios', minutes: 12, target: 3, href: '/practice/listening' },

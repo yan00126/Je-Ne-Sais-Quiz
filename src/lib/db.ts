@@ -2,7 +2,7 @@ import type { SQLiteDatabase } from 'expo-sqlite';
 import { STARTER_VOCAB, type VocabItem } from '../data/vocab';
 import { newCardRow, type CardRow } from './srs';
 import { currentLevel, type Attempt, type Level, type LevelState } from './level';
-import { dayKey, wordTiers, type Session, type WordTiers } from './stats';
+import { dayKey, newWordsCutoff, wordTiers, type Session, type WordTiers } from './stats';
 import type { NumberAnswer } from './numberDrill';
 import type { CategoryId } from './numbers';
 
@@ -340,7 +340,7 @@ export async function getWordTiers(db: SQLiteDatabase): Promise<WordTiers> {
 
 // New words first studied in the last 7 days.
 export async function newWordsThisWeek(db: SQLiteDatabase) {
-  const row = await db.getFirstAsync<{ n: number }>('SELECT COUNT(*) AS n FROM cards WHERE introduced_at >= ?', startOfToday() - 6 * 86_400_000);
+  const row = await db.getFirstAsync<{ n: number }>('SELECT COUNT(*) AS n FROM cards WHERE introduced_at >= ?', newWordsCutoff(Date.now()));
   return row?.n ?? 0;
 }
 

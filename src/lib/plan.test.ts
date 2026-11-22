@@ -44,3 +44,20 @@ test('step ids are unique so the Today tiles have distinct keys', () => {
   const ids = todaysPlan(new Date(2026, 9, 31)).map((s) => s.id);
   assert.equal(new Set(ids).size, ids.length);
 });
+
+test('writing and speaking alternate across month ends and DST changes', () => {
+  const previous = process.env.TZ;
+  process.env.TZ = 'America/Toronto';
+  try {
+    for (const [month, day] of [[0, 31], [2, 7], [2, 8], [9, 31], [10, 1]] as const) {
+      const first = new Date(2026, month, day, 12);
+      const second = new Date(first);
+      second.setDate(second.getDate() + 1);
+      assert.notEqual(todaysPlan(first).at(-1)?.id, todaysPlan(second).at(-1)?.id, first.toString());
+      assert.equal(todaysPlan(first).at(-1)?.id, todaysPlan(new Date(2026, month, day, 23, 59)).at(-1)?.id);
+    }
+  } finally {
+    if (previous === undefined) delete process.env.TZ;
+    else process.env.TZ = previous;
+  }
+});
