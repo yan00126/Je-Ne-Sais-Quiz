@@ -43,7 +43,7 @@ function screen(path: string, database: Record<string, Function> = {}) {
     require: (name: string) => {
       switch (name) {
         case 'react/jsx-runtime': return { jsx, jsxs: jsx, Fragment: 'Fragment' };
-        case 'react': return { useState: stateHook, useEffect: effectHook, useRef: (initial: any) => stateHook(() => ({ current: initial }))[0], useCallback: (fn: Function) => fn };
+        case 'react': return { useState: stateHook, useEffect: effectHook, useRef: (initial: any) => stateHook(() => ({ current: initial }))[0], useCallback: (fn: Function) => fn, useMemo: (fn: Function) => fn() };
         case 'react-native': return { View: 'View', Text: 'Text', TextInput: 'TextInput', Pressable: 'Pressable' };
         case 'expo-router': return { useFocusEffect: (effect: () => void) => effectHook(effect, []) };
         case 'expo-sqlite': return { useSQLiteContext: () => db };
@@ -53,6 +53,8 @@ function screen(path: string, database: Record<string, Function> = {}) {
         case '../../theme/ThemeProvider': return { makeStyles: () => () => ({}), useTheme: () => ({ colors: {} }) };
         case '../../data/prompts': return { WRITING_TASKS };
         case '../../data/recordings': return { REAL_EXAMPLES: {}, WORD_AUDIO: {} };
+        case '../../data/vocab': return { STARTER_VOCAB: [], TOPICS: {} };
+        case '../../lib/distractors': return { choiceOptions: () => [], makePool: () => ({}) };
         case '../../lib/db': return db;
         case '../../lib/useStudyTimer': return { useStudyTimer() {} };
         case '../../lib/activity': return { markActive() {} };

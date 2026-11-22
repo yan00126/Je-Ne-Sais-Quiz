@@ -1,11 +1,17 @@
 // Typed vocabulary exercises: which exercise to show for a card, and how to grade what was typed.
 
-export type ExerciseKind = 'flashcard' | 'dictation' | 'meaning' | 'cloze';
+// choice: pick the French word for the English among look-alikes. clozeChoice: pick the word that fills
+// the blank in a sentence. Both are recognition (easier); dictation, meaning and cloze are typed recall.
+export type ExerciseKind = 'flashcard' | 'choice' | 'clozeChoice' | 'dictation' | 'meaning' | 'cloze';
 
-// Harder exercises as a word gets better known. New words start as flashcards.
-export function exerciseFor(reps: number, hasCloze: boolean): ExerciseKind {
+// New words start as flashcards. Then each round goes from recognising the word to producing it:
+// pick it, pick it in a sentence, then type it from sound, from meaning and in a sentence.
+// A word just forgotten (`relearning`) gets a recognition question first, against words it is easy
+// to confuse with, before it has to be typed again.
+export function exerciseFor(reps: number, hasCloze: boolean, relearning = false): ExerciseKind {
   if (reps === 0) return 'flashcard';
-  const cycle: ExerciseKind[] = hasCloze ? ['dictation', 'meaning', 'cloze'] : ['dictation', 'meaning'];
+  if (relearning) return hasCloze && reps % 2 === 0 ? 'clozeChoice' : 'choice';
+  const cycle: ExerciseKind[] = hasCloze ? ['choice', 'clozeChoice', 'dictation', 'meaning', 'cloze'] : ['choice', 'dictation', 'meaning'];
   return cycle[(reps - 1) % cycle.length];
 }
 
