@@ -1,7 +1,7 @@
 import Ionicons from '@expo/vector-icons/Ionicons';
 import { useFocusEffect } from 'expo-router';
 import { useSQLiteContext } from 'expo-sqlite';
-import { useCallback, useEffect, useState } from 'react';
+import { useCallback, useEffect, useRef, useState } from 'react';
 import { Linking, Pressable, Text, TextInput, View } from 'react-native';
 import { outcomeColor, ResultBanner } from '../../components/ResultBanner';
 import { Body, Button, Card, H1, Screen, shade, tap, textColor, tint } from '../../components/ui';
@@ -11,6 +11,7 @@ import type { Outcome } from '../../lib/feedback';
 import { getStudyQueue, logAttempt, saveReview, type ReviewCard } from '../../lib/db';
 import { markActive } from '../../lib/activity';
 import { play } from '../../lib/audio';
+import { afterReview, studyQueue } from '../../lib/cardQueue';
 import { intervalLabel, Rating, review, type Grade } from '../../lib/srs';
 import { useStudyTimer } from '../../lib/useStudyTimer';
 import { makeStyles, useTheme } from '../../theme/ThemeProvider';
@@ -31,36 +32,66 @@ export default function Cards() {
   useStudyTimer('vocab');
   const [queue, setQueue] = useState<ReviewCard[] | null>(null);
   const [reviewed, setReviewed] = useState(0);
+  const [now, setNow] = useState(Date.now);
+  const [saving, setSaving] = useState(false);
+  const [error, setError] = useState<string | null>(null);
+  const grading = useRef(false);
 
   useFocusEffect(
     useCallback(() => {
-      getStudyQueue(db).then(setQueue);
+      let active = true;
+      setNow(Date.now());
+      getStudyQueue(db).then((cards) => {
+        if (active) setQueue(cards);
+      }).catch(() => {
+        if (active) setError('Impossible de charger les cartes. Réessayez en rouvrant cet onglet.');
+      });
+      const timer = setInterval(() => setNow(Date.now()), 1000);
+      return () => { active = false; clearInterval(timer); };
     }, [db]),
   );
 
-  if (!queue) return null;
+  if (!queue) return error ? <Screen><Body>{error}</Body></Screen> : null;
 
-  const card = queue[0];
+  const { card, nextDue } = studyQueue(queue, now);
   if (!card) {
+    if (nextDue !== null) {
+      return (
+        <Screen>
+          <H1>Petite pause !</H1>
+          <Body>Prochaine carte dans {Math.max(1, Math.ceil((nextDue - now) / 60_000))} min.</Body>
+          <Body muted>Vos cartes en apprentissage reviendront à l’heure prévue. Vous pouvez pratiquer une autre compétence en attendant.</Body>
+        </Screen>
+      );
+    }
     return (
       <Screen>
         <H1>C'est tout pour aujourd'hui !</H1>
         <Body muted>
-          {reviewed > 0 ? `${reviewed} carte(s) revue(s). ` : ''}Revenez demain pour les prochaines révisions.
+          {reviewed > 0 ? `${reviewed} ${reviewed === 1 ? 'carte revue' : 'cartes revues'}. ` : ''}Revenez demain pour les prochaines révisions.
         </Body>
       </Screen>
     );
   }
 
   async function grade(g: Grade) {
-    const now = new Date();
-    const next = review(card, g, now);
-    await saveReview(db, next, card.reps === 0);
-    await logAttempt(db, 'vocab', card.id, g === Rating.Again ? 0 : 1, 1);
-    setReviewed((n) => n + 1);
-    // A card answered "Again" comes back within minutes, so keep it at the end of this session.
-    const rest = queue!.slice(1);
-    setQueue(next.due - now.getTime() < 15 * 60_000 ? [...rest, { ...card, ...next }] : rest);
+    if (!card || grading.current) return;
+    grading.current = true;
+    setSaving(true);
+    setError(null);
+    try {
+      const next = review(card, g, new Date());
+      await saveReview(db, next, card.reps === 0);
+      await logAttempt(db, 'vocab', card.id, g === Rating.Again ? 0 : 1, 1);
+      setReviewed((n) => n + 1);
+      setQueue((current) => current && afterReview(current, { ...card, ...next }));
+      setNow(next.last_review ?? now);
+    } catch {
+      setError('Impossible d’enregistrer la réponse. Réessayez.');
+    } finally {
+      grading.current = false;
+      setSaving(false);
+    }
   }
 
   const cloze = makeCloze(card.fr, card.example);
@@ -69,18 +100,19 @@ export default function Cards() {
 
   return (
     <Screen>
-      <Body muted>{queue.length} carte(s) restante(s)</Body>
+      <Body muted>{queue.length} {queue.length === 1 ? 'carte restante' : 'cartes restantes'}</Body>
+      {error && <Body>{error}</Body>}
       {kind === 'flashcard' ? (
-        <Flashcard key={key} card={card} onGrade={grade} />
+        <Flashcard key={key} card={card} onGrade={grade} saving={saving} />
       ) : (
-        <TypedExercise key={key} card={card} kind={kind} cloze={cloze} onGrade={grade} />
+        <TypedExercise key={key} card={card} kind={kind} cloze={cloze} onGrade={grade} saving={saving} />
       )}
     </Screen>
   );
 }
 
 // New words: see the word, hear it, then grade yourself.
-function Flashcard({ card, onGrade }: { card: ReviewCard; onGrade: (g: Grade) => void }) {
+function Flashcard({ card, onGrade, saving }: { card: ReviewCard; onGrade: (g: Grade) => void; saving: boolean }) {
   const t = useTheme();
   const styles = useStyles();
   const [revealed, setRevealed] = useState(false);
@@ -90,7 +122,7 @@ function Flashcard({ card, onGrade }: { card: ReviewCard; onGrade: (g: Grade) =>
       <Card style={styles.flashcard}>
         <Text style={styles.label}>Nouveau mot</Text>
         <Text style={styles.word}>{card.fr}</Text>
-        <Button title="🔊 Écouter" variant="outline" onPress={() => sayWord(card)} />
+        <Button title="Écouter" icon="volume-medium" variant="outline" onPress={() => sayWord(card)} />
         {WORD_AUDIO[card.id] && <Credit rec={WORD_AUDIO[card.id]} />}
         {revealed && (
           <View style={{ gap: 8, marginTop: 8 }}>
@@ -102,7 +134,7 @@ function Flashcard({ card, onGrade }: { card: ReviewCard; onGrade: (g: Grade) =>
       {revealed ? (
         <View style={styles.grades}>
           {grades(t).map(({ grade: g, label, color }) => (
-            <GradeButton key={g} label={label} interval={intervalLabel(card, g, now)} color={color} onPress={() => onGrade(g)} />
+            <GradeButton key={g} label={label} interval={intervalLabel(card, g, now)} color={color} disabled={saving} onPress={() => onGrade(g)} />
           ))}
         </View>
       ) : (
@@ -113,7 +145,7 @@ function Flashcard({ card, onGrade }: { card: ReviewCard; onGrade: (g: Grade) =>
 }
 
 // A same-size tile per grade: the label on one line and, under it, when the card comes back.
-function GradeButton({ label, interval, color, onPress }: { label: string; interval: string; color: string; onPress: () => void }) {
+function GradeButton({ label, interval, color, onPress, disabled }: { label: string; interval: string; color: string; onPress: () => void; disabled: boolean }) {
   const t = useTheme();
   const styles = useStyles();
   const brutal = t.button === 'brutal';
@@ -122,12 +154,15 @@ function GradeButton({ label, interval, color, onPress }: { label: string; inter
     <Pressable
       accessibilityRole="button"
       accessibilityLabel={`${label}, ${interval}`}
+      accessibilityState={{ disabled }}
+      disabled={disabled}
       onPress={() => {
         tap();
         onPress();
       }}
       style={({ pressed }) => [
         styles.grade,
+        disabled && { opacity: 0.4 },
         brutal
           ? [styles.gradeBrutal, { backgroundColor: color }, pressed && styles.gradeBrutalPressed]
           : [
@@ -200,11 +235,13 @@ function TypedExercise({
   kind,
   cloze,
   onGrade,
+  saving,
 }: {
   card: ReviewCard;
   kind: Exclude<ExerciseKind, 'flashcard'>;
   cloze: { sentence: string; answer: string } | null;
   onGrade: (g: Grade) => void;
+  saving: boolean;
 }) {
   const t = useTheme();
   const styles = useStyles();
@@ -247,7 +284,7 @@ function TypedExercise({
     <>
       <Card style={styles.flashcard}>
         <Text style={styles.label}>{PROMPTS[kind]}</Text>
-        {kind === 'dictation' && <Button title="🔊 Réécouter" variant="outline" onPress={() => sayWord(card)} />}
+        {kind === 'dictation' && <Button title="Réécouter" icon="volume-medium" variant="outline" onPress={() => sayWord(card)} />}
         {kind === 'meaning' && <Text style={styles.meaning}>{card.en}</Text>}
         {kind === 'cloze' && cloze && (
           <>
@@ -309,9 +346,9 @@ function TypedExercise({
           title={gaveUp ? 'À retenir' : TITLES[verdict]}
           detail={gaveUp ? undefined : verdict === 'accents' ? 'Attention aux accents' : verdict === 'correct' && hints > 0 ? 'Avec un indice' : undefined}
         >
-          <Button title="Continuer" color={outcomeColor(t, OUTCOME[verdict])} onPress={() => onGrade(grade())} />
+          <Button title="Continuer" disabled={saving} color={outcomeColor(t, OUTCOME[verdict])} onPress={() => onGrade(grade())} />
           {verdict !== 'correct' && !gaveUp && (
-            <Button title="J'avais raison (synonyme)" variant="outline" color={t.colors.muted} onPress={() => onGrade(Rating.Good)} />
+            <Button title="J'avais raison (synonyme)" disabled={saving} variant="outline" color={t.colors.muted} onPress={() => onGrade(Rating.Good)} />
           )}
         </ResultBanner>
       )}
