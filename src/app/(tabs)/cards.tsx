@@ -11,7 +11,7 @@ import type { Outcome } from '../../lib/feedback';
 import { getStudyQueue, logAttempt, saveReview, type ReviewCard } from '../../lib/db';
 import { markActive } from '../../lib/activity';
 import { play } from '../../lib/audio';
-import { afterReview, studyQueue } from '../../lib/cardQueue';
+import { afterReview, mergeStudyQueue, studyQueue } from '../../lib/cardQueue';
 import { intervalLabel, Rating, review, type Grade } from '../../lib/srs';
 import { useStudyTimer } from '../../lib/useStudyTimer';
 import { makeStyles, useTheme } from '../../theme/ThemeProvider';
@@ -42,7 +42,8 @@ export default function Cards() {
       let active = true;
       setNow(Date.now());
       getStudyQueue(db).then((cards) => {
-        if (active) setQueue(cards);
+        const refreshedAt = Date.now();
+        if (active) setQueue((previous) => mergeStudyQueue(previous ?? [], cards, refreshedAt));
       }).catch(() => {
         if (active) setError('Impossible de charger les cartes. Réessayez en rouvrant cet onglet.');
       });
