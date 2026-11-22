@@ -24,6 +24,13 @@ export function dayKey(ms: number) {
   return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`;
 }
 
+export function newWordsCutoff(now: number) {
+  const d = new Date(now);
+  d.setHours(0, 0, 0, 0);
+  d.setDate(d.getDate() - 6);
+  return d.getTime();
+}
+
 function addDays(ms: number, n: number) {
   const d = new Date(ms);
   d.setDate(d.getDate() + n);

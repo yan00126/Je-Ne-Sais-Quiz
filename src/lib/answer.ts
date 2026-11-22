@@ -9,7 +9,7 @@ export function exerciseFor(reps: number, hasCloze: boolean): ExerciseKind {
   return cycle[(reps - 1) % cycle.length];
 }
 
-const ARTICLE = /^(?:(?:une|un|les|le|la|des|se)\s+|[ls]'\s*)/;
+const ARTICLE = /^(?:(?:une|un|les|le|la|des)\s+|l'\s*)/;
 
 function normalize(s: string) {
   return s
@@ -52,10 +52,11 @@ export function gradeAnswer(typed: string, expected: string): Verdict {
 export function makeCloze(fr: string, example: string): { sentence: string; answer: string } | null {
   const word = headword(fr);
   if (word.length < 3) return null;
-  // Only match at the start of a word, so "art" never blanks the middle of "partir".
   const lower = example.toLowerCase().replace(/[’]/g, "'");
   let i = lower.indexOf(word);
-  while (i > 0 && /\p{L}/u.test(lower[i - 1])) i = lower.indexOf(word, i + 1);
+  while (i >= 0 && (/\p{L}$/u.test(lower.slice(0, i)) || /^\p{L}/u.test(lower.slice(i + word.length)))) {
+    i = lower.indexOf(word, i + 1);
+  }
   if (i < 0) return null;
   const answer = example.slice(i, i + word.length);
   return { sentence: example.slice(0, i) + '_'.repeat(Math.max(4, word.length)) + example.slice(i + word.length), answer };

@@ -91,6 +91,14 @@ test('typing a vocab word exactly as shown is always marked correct', () => {
   for (const v of STARTER_VOCAB) assert.equal(gradeAnswer(v.fr, v.fr), 'correct', `${v.id} ${v.fr}`);
 });
 
+test('vocab clozes never leave a letter next to the blank', () => {
+  for (const v of STARTER_VOCAB) {
+    const c = makeCloze(v.fr, v.example);
+    if (!c) continue;
+    assert.doesNotMatch(c.sentence, /\p{L}_|_\p{L}/u, `${v.id}: ${c.sentence}`);
+  }
+});
+
 test('no vocab cloze shows an article twice', () => {
   // The article stays in the sentence, so neither the blank's answer nor what is revealed may start with one.
   const article = /^(?:(?:une|un|les|le|la|des)\s|l['’])/i;
