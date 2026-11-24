@@ -81,3 +81,14 @@ export function previewVoice(identifier: string, language: string) {
   Speech.stop();
   Speech.speak('Bonjour ! Je vais vous aider à préparer le TCF Canada.', { voice: identifier, language });
 }
+
+// Says a text at an exact rate (1 = the voice's normal speed). onDone is not called when the
+// speech is cut off by stopSpeech(): that reports « stopped », not « done ».
+export function speakAt(text: string, rate: number, onDone?: () => void) {
+  Speech.stop();
+  speak(text, { rate, onDone });
+}
+
+export function stopSpeech() {
+  Speech.stop();
+}
