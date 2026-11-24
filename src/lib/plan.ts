@@ -26,7 +26,7 @@ export function todaysPlan(date: Date): Step[] {
     { id: 'vocab', skill: 'vocab', title: 'Vocabulaire', detail: 'Toutes les cartes du jour', short: 'Cartes du jour', minutes: 10, target: 1, href: '/cards' },
     { id: 'listening', skill: 'listening', title: 'Compréhension orale', detail: '3 documents audio', short: '3 audios', minutes: 12, target: 3, href: '/practice/listening' },
     { id: 'reading', skill: 'reading', title: 'Compréhension écrite', detail: '3 textes', short: '3 textes', minutes: 18, target: 3, href: '/practice/reading' },
-    { id: 'shadowing', skill: 'speaking', title: 'Répéter après le modèle', detail: '1 dialogue : écoutez chaque phrase et répétez-la', short: '1 dialogue', minutes: 5, target: 1, href: '/practice/shadowing' },
+    { id: 'shadowing', skill: 'speaking', title: 'Répéter après le modèle', detail: '1 série par niveau ou 1 dialogue : écoutez et répétez chaque phrase', short: '1 série', minutes: 5, target: 1, href: '/practice/shadowing' },
     writingDay
       ? { id: 'writing', skill: 'writing', title: 'Expression écrite', detail: '1 tâche, nombre de mots minimum atteint', short: '1 tâche', minutes: 25, target: 1, href: '/practice/writing' }
       : { id: 'speaking', skill: 'speaking', title: 'Expression orale', detail: '3 séances : tâche enregistrée (60 % du temps au moins) ou dialogue guidé', short: '3 séances', minutes: 20, target: 3, href: '/practice/speaking' },

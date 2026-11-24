@@ -11,7 +11,7 @@ const SKILLS: { title: string; detail: string; skill: Skill; icon: ComponentProp
   { title: 'Compréhension écrite', detail: 'Lisez un texte, répondez aux questions', skill: 'reading', icon: 'book-outline', href: '/practice/reading' },
   { title: 'Expression écrite', detail: 'Tâches 1, 2 et 3 avec minuterie et compteur de mots', skill: 'writing', icon: 'create-outline', href: '/practice/writing' },
   { title: 'Expression orale', detail: 'Tâches 1, 2 et 3 enregistrées', skill: 'speaking', icon: 'mic-outline', href: '/practice/speaking' },
-  { title: 'Répéter après le modèle', detail: 'Écoutez, répétez, comparez votre prononciation', skill: 'speaking', icon: 'repeat-outline', href: '/practice/shadowing' },
+  { title: 'Répéter après le modèle', detail: 'Par niveau : lent, puis normal, avec des pauses pour répéter', skill: 'speaking', icon: 'repeat-outline', href: '/practice/shadowing' },
   { title: 'Dialogue guidé', detail: 'Répondez à l’examinateur, avec des indices si vous bloquez', skill: 'speaking', icon: 'chatbubbles-outline', href: '/practice/dialogue' },
 ];
 
