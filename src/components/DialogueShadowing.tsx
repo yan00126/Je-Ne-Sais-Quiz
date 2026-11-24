@@ -2,7 +2,7 @@ import { useSQLiteContext } from 'expo-sqlite';
 import { useEffect, useState, type ReactNode } from 'react';
 import { Text, View } from 'react-native';
 import { TaskTabs } from './TaskTabs';
-import { Body, Button, Card, H2, Screen } from './ui';
+import { Body, Button, Card, Footer, H2, Row, Screen } from './ui';
 import { DIALOGUES, shadowingLines, type Dialogue } from '../data/dialogues';
 import { SHADOWING_PREFIX, getItemsDoneToday, logAttempt, pickNextItem } from '../lib/db';
 import { useStudyTimer } from '../lib/useStudyTimer';
@@ -75,9 +75,9 @@ export function DialogueShadowing({ header }: { header?: ReactNode }) {
         <Card style={{ alignItems: 'center' }}>
           <H2>Bravo ! {lines.length} phrases répétées.</H2>
           <Body muted>Essayez maintenant le dialogue guidé sur le même sujet, avec vos propres mots.</Body>
-          <View style={{ alignSelf: 'stretch', marginTop: 8 }}>
+          <Footer>
             <Button title="Recommencer" variant="outline" onPress={() => { setIndex(0); setFinished(false); }} />
-          </View>
+          </Footer>
         </Card>
       ) : (
         <>
@@ -97,25 +97,25 @@ export function DialogueShadowing({ header }: { header?: ReactNode }) {
             <Button title={showText ? 'Masquer le texte' : 'Afficher le texte'} variant="outline" color={t.colors.muted} onPress={() => setShowText(!showText)} />
           </Card>
 
-          {rec.isRecording ? (
-            <Button title={`■ Arrêter (${Math.round(rec.seconds)} s)`} color={t.colors.red} onPress={() => rec.stop({ kind: 'shadowing', itemId: dialogue.id, title: dialogue.title, text: line })} />
-          ) : (
-            <Button title={rec.uri ? '● Répéter encore' : '● Répéter'} color={t.colors.red} onPress={rec.start} />
-          )}
-
-          {rec.uri && !rec.isRecording && (
-            <>
-              <View style={styles.row}>
-                <View style={{ flex: 1 }}>
-                  <Button title="▶︎ Me réécouter" variant="outline" onPress={rec.playMine} />
-                </View>
-                <View style={{ flex: 1 }}>
-                  <Button title="🔊 Original" variant="outline" onPress={() => speakFr(line)} />
-                </View>
-              </View>
-              <Button title={index + 1 < lines.length ? 'Phrase suivante →' : 'Terminer'} onPress={next} />
-            </>
-          )}
+          {/* Pinned at the bottom: record, compare, next. */}
+          <Footer>
+            {rec.uri && !rec.isRecording && (
+              <Row>
+                <Button title="▶︎ Me réécouter" variant="outline" onPress={rec.playMine} />
+                <Button title="🔊 Original" variant="outline" onPress={() => speakFr(line)} />
+              </Row>
+            )}
+            {rec.isRecording ? (
+              <Button title={`■ Arrêter (${Math.round(rec.seconds)} s)`} color={t.colors.red} onPress={() => rec.stop({ kind: 'shadowing', itemId: dialogue.id, title: dialogue.title, text: line })} />
+            ) : rec.uri ? (
+              <Row>
+                <Button title="● Encore" variant="outline" color={t.colors.red} onPress={rec.start} />
+                <Button title={index + 1 < lines.length ? 'Suivante →' : 'Terminer'} onPress={next} />
+              </Row>
+            ) : (
+              <Button title="● Répéter" color={t.colors.red} onPress={rec.start} />
+            )}
+          </Footer>
         </>
       )}
     </Screen>

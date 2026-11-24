@@ -37,8 +37,12 @@ const until = async (p, text, ms) => { const end = Date.now() + ms; while (Date.
   await p.goto('http://localhost:8081/practice/shadowing', { waitUntil: 'networkidle' });
   await p.waitForTimeout(2000);
   await p.getByText('Intermédiaire', { exact: true }).click();
+  // Pause and text options are in a sheet opened from the bar above « Commencer ».
+  await p.getByLabel('Options de la série').click();
+  await p.waitForTimeout(400);
   await p.getByText('Moyenne', { exact: true }).click();
   await p.getByText('Après', { exact: true }).click();
+  await p.getByText('OK', { exact: true }).click();
   await p.waitForTimeout(300);
   await p.screenshot({ path: out('1-setup'), fullPage: true });
   await p.getByText(/^Commencer/).click();
@@ -59,8 +63,11 @@ const until = async (p, text, ms) => { const end = Date.now() + ms; while (Date.
   await p.waitForTimeout(500);
   // A whole series, start to finish, at A1 with short pauses and the text always visible.
   await p.getByText('Débutant', { exact: true }).click();
+  await p.getByLabel('Options de la série').click();
+  await p.waitForTimeout(400);
   await p.getByText('Courte', { exact: true }).click();
   await p.getByText('Visible', { exact: true }).click();
+  await p.getByText('OK', { exact: true }).click();
   await p.evaluate(() => { window.__speech = []; });
   await p.getByText(/^Commencer/).click();
   await until(p, /^Bravo/, 240000);

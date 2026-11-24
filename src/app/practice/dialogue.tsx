@@ -3,7 +3,7 @@ import { useSQLiteContext } from 'expo-sqlite';
 import { useEffect, useState } from 'react';
 import { Pressable, StyleSheet, Text, View } from 'react-native';
 import { TaskTabs } from '../../components/TaskTabs';
-import { Body, Button, Card, H2, Screen, tint } from '../../components/ui';
+import { Body, Button, Card, Footer, H2, Row, Screen, tint } from '../../components/ui';
 import { DIALOGUES, type Dialogue } from '../../data/dialogues';
 import { getItemsDoneToday, logAttempt, pickNextItem } from '../../lib/db';
 import { useStudyTimer } from '../../lib/useStudyTimer';
@@ -72,7 +72,7 @@ export default function DialogueScreen() {
   }
 
   return (
-    <Screen>
+    <Screen followEnd>
       <TaskTabs current={dialogue.task} done={(n) => DIALOGUES.some((d) => d.task === n && doneToday.has(d.id))} onPick={choose} />
       <Card>
         <H2>{dialogue.title}</H2>
@@ -87,9 +87,9 @@ export default function DialogueScreen() {
         <Card style={{ alignItems: 'center' }}>
           <H2>Dialogue terminé !</H2>
           <Body muted>Pour gagner en fluidité, répétez les réponses modèles dans « Répéter après le modèle ».</Body>
-          <View style={{ alignSelf: 'stretch', marginTop: 8 }}>
+          <Footer>
             <Button title="Recommencer" variant="outline" onPress={() => begin(dialogue)} />
-          </View>
+          </Footer>
         </Card>
       ) : (
         <>
@@ -105,41 +105,36 @@ export default function DialogueScreen() {
             ))}
           </Card>
 
-          {rec.isRecording ? (
-            <Button
-              title={`■ Arrêter (${Math.round(rec.seconds)} s)`}
-              color={t.colors.red}
-              onPress={() => rec.stop({ kind: 'dialogue', itemId: dialogue.id, title: `${dialogue.title} · ${current.goal}`, text: current.model })}
-            />
-          ) : rec.uri ? (
-            <>
-              <Card style={styles.model}>
-                <Text style={styles.goalLabel}>Exemple de réponse</Text>
-                <Pressable onPress={() => speakFr(current.model)} style={styles.modelRow} accessibilityRole="button">
-                  <Ionicons name="volume-medium" size={20} color={t.colors.greenText} />
-                  <Text style={styles.modelText}>{current.model}</Text>
-                </Pressable>
-              </Card>
-              <View style={styles.row}>
-                <View style={{ flex: 1 }}>
+          {rec.uri && !rec.isRecording && (
+            <Card style={styles.model}>
+              <Text style={styles.goalLabel}>Exemple de réponse</Text>
+              <Pressable onPress={() => speakFr(current.model)} style={styles.modelRow} accessibilityRole="button">
+                <Ionicons name="volume-medium" size={20} color={t.colors.greenText} />
+                <Text style={styles.modelText}>{current.model}</Text>
+              </Pressable>
+            </Card>
+          )}
+
+          {/* The actions stay pinned at the bottom, however long the conversation gets. */}
+          <Footer>
+            {rec.isRecording ? (
+              <Button
+                title={`■ Arrêter (${Math.round(rec.seconds)} s)`}
+                color={t.colors.red}
+                onPress={() => rec.stop({ kind: 'dialogue', itemId: dialogue.id, title: `${dialogue.title} · ${current.goal}`, text: current.model })}
+              />
+            ) : rec.uri ? (
+              <>
+                <Row>
                   <Button title="▶︎ Me réécouter" variant="outline" onPress={rec.playMine} />
-                </View>
-                <View style={{ flex: 1 }}>
                   <Button title="● Réessayer" variant="outline" color={t.colors.red} onPress={rec.start} />
-                </View>
-              </View>
-              <Button title={turn + 1 < dialogue.turns.length ? 'Continuer →' : 'Terminer'} onPress={next} />
-            </>
-          ) : (
-            <>
-              <Button title="● Répondre" color={t.colors.red} onPress={rec.start} />
-              <View style={styles.row}>
-                {current.examiner && (
-                  <View style={{ flex: 1 }}>
-                    <Button title="🔊 Réécouter" variant="outline" onPress={() => speakFr(current.examiner!)} />
-                  </View>
-                )}
-                <View style={{ flex: 1 }}>
+                </Row>
+                <Button title={turn + 1 < dialogue.turns.length ? 'Continuer →' : 'Terminer'} onPress={next} />
+              </>
+            ) : (
+              <>
+                <Row>
+                  {current.examiner ? <Button title="🔊 Réécouter" variant="outline" onPress={() => speakFr(current.examiner!)} /> : null}
                   <Button
                     title="💡 Indice"
                     variant="outline"
@@ -147,10 +142,11 @@ export default function DialogueScreen() {
                     disabled={hints >= current.hints.length}
                     onPress={() => setHints(hints + 1)}
                   />
-                </View>
-              </View>
-            </>
-          )}
+                </Row>
+                <Button title="● Répondre" color={t.colors.red} onPress={rec.start} />
+              </>
+            )}
+          </Footer>
         </>
       )}
     </Screen>
@@ -173,7 +169,6 @@ function Bubble({ line }: { line: Line }) {
 }
 
 const useStyles = makeStyles((t) => ({
-  row: { flexDirection: 'row', gap: 8 },
   goal: { borderColor: tint(t.colors.accent, 0.4), borderWidth: 1.5 },
   goalLabel: { fontSize: 13, fontWeight: '600', color: t.colors.muted, textTransform: 'uppercase' },
   goalText: { fontSize: 18, lineHeight: 25, fontWeight: '600', color: t.colors.ink },

@@ -2,7 +2,7 @@ import Ionicons from '@expo/vector-icons/Ionicons';
 import { useSQLiteContext } from 'expo-sqlite';
 import { useEffect, useRef, useState } from 'react';
 import { TextInput, View } from 'react-native';
-import { Body, Button, Card, H2, Screen } from '../../components/ui';
+import { Body, Button, Card, Footer, H2, Screen, Sheet } from '../../components/ui';
 import { WRITING_TASKS, type WritingTask } from '../../data/prompts';
 import { logAttempt, pickNextItem, saveWriting } from '../../lib/db';
 import { markActive } from '../../lib/activity';
@@ -112,7 +112,7 @@ export default function Writing() {
   }
 
   return (
-    <Screen>
+    <Screen fieldAtEnd>
       <View style={styles.tabs}>
         {([1, 2, 3] as const).map((n) => (
           <View key={n} style={{ flex: 1 }}>
@@ -121,14 +121,12 @@ export default function Writing() {
         ))}
       </View>
       {error && <Body>{error}</Body>}
-      {pendingTask !== null && (
-        <Card>
-          <H2>Changer de tâche ?</H2>
-          <Body>Votre texte n’est pas enregistré. Changer de tâche supprimera ce brouillon.</Body>
-          <Button title="Garder mon texte" disabled={busy} variant="outline" onPress={() => setPendingTask(null)} />
-          <Button title="Changer de tâche" disabled={busy} onPress={() => changeTask(pendingTask)} />
-        </Card>
-      )}
+      <Sheet visible={pendingTask !== null} title="Changer de tâche ?" onClose={() => !busy && setPendingTask(null)}>
+        <Body>Votre texte n’est pas enregistré. Changer de tâche supprimera ce brouillon.</Body>
+        {error && <Body>{error}</Body>}
+        <Button title="Garder mon texte" disabled={busy} variant="outline" onPress={() => setPendingTask(null)} />
+        <Button title="Changer de tâche" disabled={busy} onPress={() => pendingTask !== null && changeTask(pendingTask)} />
+      </Sheet>
       <Card>
         <H2>
           Tâche {task.task} · {task.minWords} à {task.maxWords} mots
@@ -136,7 +134,9 @@ export default function Writing() {
         <Body>{task.prompt}</Body>
       </Card>
       {!started ? (
-        <Button title={`Commencer (${SUGGESTED_MINUTES[task.task]} min)`} disabled={busy || pendingTask !== null} onPress={() => setStarted(true)} />
+        <Footer>
+          <Button title={`Commencer (${SUGGESTED_MINUTES[task.task]} min)`} disabled={busy || pendingTask !== null} onPress={() => setStarted(true)} />
+        </Footer>
       ) : (
         <>
           <View style={styles.meta}>
@@ -149,6 +149,20 @@ export default function Writing() {
               {words > 0 && (inRange ? '✓' : words < task.minWords ? '· trop court' : '· trop long')}
             </Body>
           </View>
+          {saved && (
+            <Card>
+              <H2>Texte enregistré</H2>
+              {!writingCounts(words, task.minWords) && (
+                <Body>
+                  Pas compté dans le plan du jour : il faut au moins {task.minWords} mots (vous en avez {words}).
+                </Body>
+              )}
+              <Body muted>
+                La correction automatique (grammaire, vocabulaire, niveau estimé) arrive dans la prochaine version. En attendant, relisez-vous :
+                accords, temps des verbes, connecteurs (cependant, en revanche, par conséquent).
+              </Body>
+            </Card>
+          )}
           <TextInput
             style={styles.input}
             multiline
@@ -162,23 +176,14 @@ export default function Writing() {
             autoCorrect={false}
             textAlignVertical="top"
           />
-          {saved ? (
-            <Card>
-              <H2>Texte enregistré</H2>
-              {!writingCounts(words, task.minWords) && (
-                <Body>
-                  Pas compté dans le plan du jour : il faut au moins {task.minWords} mots (vous en avez {words}).
-                </Body>
-              )}
-              <Body muted>
-                La correction automatique (grammaire, vocabulaire, niveau estimé) arrive dans la prochaine version. En attendant, relisez-vous :
-                accords, temps des verbes, connecteurs (cependant, en revanche, par conséquent).
-              </Body>
+          {/* Pinned at the bottom: stays above the keyboard while typing. */}
+          <Footer>
+            {saved ? (
               <Button title="Nouvelle tentative" variant="outline" onPress={() => choose(task)} />
-            </Card>
-          ) : (
-            <Button title={saving ? 'Enregistrement…' : 'Terminer et enregistrer'} disabled={words === 0 || busy || pendingTask !== null} onPress={save} />
-          )}
+            ) : (
+              <Button title={saving ? 'Enregistrement…' : 'Terminer et enregistrer'} disabled={words === 0 || busy || pendingTask !== null} onPress={save} />
+            )}
+          </Footer>
         </>
       )}
     </Screen>

@@ -39,3 +39,9 @@ Docs: https://docs.expo.dev/eas/index.md
 - If `ios/` and `android/` directories do not exist, they are generated (Continuous Native Generation). Never create or edit them by hand — configure native behavior in `app.json` and config plugins.
 - Expo Go only includes its bundled native modules. After adding a library with native code, the app needs a development build: `npx expo run:ios|android` locally, or `eas build --profile development`.
 - Prefer recommended Expo modules over third-party libraries, and check your available skills before adding dependencies. Docs: https://docs.expo.dev/versions/latest/index.md
+
+## Buttons must show without scrolling
+
+- Put a screen's main actions (check, next, submit, start…) in its pinned bottom bar: `<Footer>` anywhere inside a `Screen` from `src/components/ui.tsx`, or the `footer` prop of `Screen` (use the prop for a text field). The bar stays above the keyboard.
+- Settings, option pickers and confirmations go in a `Sheet` (bottom sheet modal), not inline on the page.
+- `node scripts/e2e/fold.cjs` (see its header for how to build and serve the web version) checks key screens in all three themes at 375×667 and 390×844, with and without the keyboard, and runs in CI. Add a scenario there for every new screen with a main action.

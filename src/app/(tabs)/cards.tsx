@@ -4,7 +4,7 @@ import { useSQLiteContext } from 'expo-sqlite';
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { Linking, Pressable, Text, TextInput, View } from 'react-native';
 import { outcomeColor, ResultBanner } from '../../components/ResultBanner';
-import { Body, Button, Card, H1, Screen, shade, tap, textColor, tint } from '../../components/ui';
+import { Body, Button, Card, Footer, H1, Screen, shade, tap, textColor, tint } from '../../components/ui';
 import { REAL_EXAMPLES, WORD_AUDIO, type Recording } from '../../data/recordings';
 import { STARTER_VOCAB, TOPICS } from '../../data/vocab';
 import { choiceOptions, makePool, type ChoiceOption } from '../../lib/distractors';
@@ -105,7 +105,7 @@ export default function Cards() {
   const key = `${card.id}-${card.reps}-${queue.length}`;
 
   return (
-    <Screen>
+    <Screen fieldAtEnd>
       <Body muted>{queue.length} {queue.length === 1 ? 'carte restante' : 'cartes restantes'}</Body>
       {error && <Body>{error}</Body>}
       {kind === 'flashcard' ? (
@@ -139,15 +139,17 @@ function Flashcard({ card, onGrade, saving }: { card: ReviewCard; onGrade: (g: G
           </View>
         )}
       </Card>
-      {revealed ? (
-        <View style={styles.grades}>
-          {grades(t).map(({ grade: g, label, color }) => (
-            <GradeButton key={g} label={label} interval={intervalLabel(card, g, now)} color={color} disabled={saving} onPress={() => onGrade(g)} />
-          ))}
-        </View>
-      ) : (
-        <Button title="Afficher la réponse" onPress={() => setRevealed(true)} />
-      )}
+      <Footer>
+        {revealed ? (
+          <View style={styles.grades}>
+            {grades(t).map(({ grade: g, label, color }) => (
+              <GradeButton key={g} label={label} interval={intervalLabel(card, g, now)} color={color} disabled={saving} onPress={() => onGrade(g)} />
+            ))}
+          </View>
+        ) : (
+          <Button title="Afficher la réponse" onPress={() => setRevealed(true)} />
+        )}
+      </Footer>
     </>
   );
 }
@@ -332,36 +334,39 @@ function TypedExercise({
           </View>
         )}
       </Card>
-      {verdict === null ? (
-        <View style={{ gap: 8 }}>
-          <Button title="Vérifier" disabled={!typed.trim()} onPress={check} />
-          <View style={styles.helpRow}>
-            <View style={{ flex: 1 }}>
-              <Button
-                title="💡 Indice"
-                variant="outline"
-                color={t.colors.amber}
-                disabled={hints >= maxHints}
-                onPress={() => setHints((n) => n + 1)}
-              />
+      {/* Pinned at the bottom, above the keyboard. */}
+      <Footer>
+        {verdict === null ? (
+          <>
+            <View style={styles.helpRow}>
+              <View style={{ flex: 1 }}>
+                <Button
+                  title="💡 Indice"
+                  variant="outline"
+                  color={t.colors.amber}
+                  disabled={hints >= maxHints}
+                  onPress={() => setHints((n) => n + 1)}
+                />
+              </View>
+              <View style={{ flex: 1 }}>
+                <Button title="Je ne sais pas" variant="outline" color={t.colors.muted} onPress={giveUp} />
+              </View>
             </View>
-            <View style={{ flex: 1 }}>
-              <Button title="Je ne sais pas" variant="outline" color={t.colors.muted} onPress={giveUp} />
-            </View>
-          </View>
-        </View>
-      ) : (
-        <ResultBanner
-          outcome={OUTCOME[verdict]}
-          title={gaveUp ? 'À retenir' : TITLES[verdict]}
-          detail={gaveUp ? undefined : verdict === 'accents' ? 'Attention aux accents' : verdict === 'correct' && hints > 0 ? 'Avec un indice' : undefined}
-        >
-          <Button title="Continuer" disabled={saving} color={outcomeColor(t, OUTCOME[verdict])} onPress={() => onGrade(grade())} />
-          {verdict !== 'correct' && !gaveUp && (
-            <Button title="J'avais raison (synonyme)" disabled={saving} variant="outline" color={t.colors.muted} onPress={() => onGrade(Rating.Good)} />
-          )}
-        </ResultBanner>
-      )}
+            <Button title="Vérifier" disabled={!typed.trim()} onPress={check} />
+          </>
+        ) : (
+          <ResultBanner
+            outcome={OUTCOME[verdict]}
+            title={gaveUp ? 'À retenir' : TITLES[verdict]}
+            detail={gaveUp ? undefined : verdict === 'accents' ? 'Attention aux accents' : verdict === 'correct' && hints > 0 ? 'Avec un indice' : undefined}
+          >
+            <Button title="Continuer" disabled={saving} color={outcomeColor(t, OUTCOME[verdict])} onPress={() => onGrade(grade())} />
+            {verdict !== 'correct' && !gaveUp && (
+              <Button title="J'avais raison (synonyme)" disabled={saving} variant="outline" color={t.colors.muted} onPress={() => onGrade(Rating.Good)} />
+            )}
+          </ResultBanner>
+        )}
+      </Footer>
     </>
   );
 }
@@ -422,20 +427,22 @@ function ChoiceExercise({
           />
         ))}
       </View>
-      {!answered ? (
-        <Button title="Je ne sais pas" variant="outline" color={t.colors.muted} onPress={() => pick('unknown')} />
-      ) : (
-        <>
-          <Example card={card} />
-          <ResultBanner
-            outcome={outcome}
-            title={right ? 'Correct !' : picked === 'unknown' ? 'À retenir' : 'Pas tout à fait'}
-            detail={right || picked === 'unknown' ? undefined : `La réponse : ${options.find((o) => o.correct)!.text}`}
-          >
-            <Button title="Continuer" disabled={saving} color={outcomeColor(t, outcome)} onPress={() => onGrade(right ? Rating.Good : Rating.Again)} />
-          </ResultBanner>
-        </>
-      )}
+      {answered && <Example card={card} />}
+      <Footer>
+        {!answered ? (
+          <Button title="Je ne sais pas" variant="outline" color={t.colors.muted} onPress={() => pick('unknown')} />
+        ) : (
+          <>
+            <ResultBanner
+              outcome={outcome}
+              title={right ? 'Correct !' : picked === 'unknown' ? 'À retenir' : 'Pas tout à fait'}
+              detail={right || picked === 'unknown' ? undefined : `La réponse : ${options.find((o) => o.correct)!.text}`}
+            >
+              <Button title="Continuer" disabled={saving} color={outcomeColor(t, outcome)} onPress={() => onGrade(right ? Rating.Good : Rating.Again)} />
+            </ResultBanner>
+          </>
+        )}
+      </Footer>
     </>
   );
 }
