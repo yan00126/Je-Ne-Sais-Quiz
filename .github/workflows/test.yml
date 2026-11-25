@@ -1,4 +1,4 @@
-# Runs the type check and the tests on every pull request and on every push to main.
+# Runs the type check, the tests and the fold check on every pull request and on every push to main.
 name: Tests
 
 on:
@@ -20,3 +20,31 @@ jobs:
         run: npm run typecheck
       - name: Tests
         run: npm test
+
+  # Builds the web version and checks, in all three themes at iPhone SE and iPhone 15 sizes, that the main
+  # button of each key screen shows without scrolling and above the keyboard. Screenshots are kept as an artifact.
+  fold:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+      - run: npm ci --legacy-peer-deps
+      - name: Build the web version
+        run: npx expo export -p web --output-dir dist
+        env:
+          EXPO_OFFLINE: 1
+      - name: Install Playwright and Chromium
+        run: npm install --no-save --legacy-peer-deps playwright@1.63.0 && npx playwright install --with-deps chromium
+      - name: Fold check
+        run: |
+          node scripts/e2e/serve.cjs dist &
+          for i in $(seq 30); do curl -sf http://localhost:8081 > /dev/null && break; sleep 1; done
+          node scripts/e2e/fold.cjs fold-screenshots
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: fold-screenshots
+          path: fold-screenshots
