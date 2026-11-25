@@ -1,6 +1,6 @@
 import Ionicons from '@expo/vector-icons/Ionicons';
 import { router, type Href } from 'expo-router';
-import type { ComponentProps, ReactNode } from 'react';
+import { useState, type ComponentProps, type ReactNode } from 'react';
 import { Pressable, Text, View } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import type { Skill } from '../lib/db';
@@ -8,7 +8,7 @@ import { formatMinutes, type Day, type WordTiers } from '../lib/stats';
 import { makeStyles, useTheme } from '../theme/ThemeProvider';
 import { StudyTimeCard, WordsCard } from './StatsCards';
 import { Mimi } from './TodayViews';
-import { Body, Screen, tap } from './ui';
+import { Body, Screen, Sheet, tap } from './ui';
 
 // One row per TCF skill: time spent, its share of the four, and how it went.
 export type SkillRow = { skill: Skill; title: string; minutes: number; share: number; attempts: number; accuracy: number | null };
@@ -66,6 +66,81 @@ function go(href: Href) {
   router.push(href);
 }
 
+// The gear at the top right of Progrès, and the sheet of app settings it opens.
+function SettingsButton({ links: items }: { links: Link[] }) {
+  const t = useTheme();
+  const s = useShared();
+  const [open, setOpen] = useState(false);
+  return (
+    <>
+      <Pressable
+        accessibilityRole="button"
+        accessibilityLabel="Réglages"
+        hitSlop={8}
+        onPress={() => {
+          tap();
+          setOpen(true);
+        }}
+        style={({ pressed }) => [s.gear, pressed && { opacity: 0.7 }]}
+      >
+        <Ionicons name="settings-outline" size={22} color={t.colors.ink} />
+      </Pressable>
+      <Sheet visible={open} title="Réglages" onClose={() => setOpen(false)}>
+        <View style={s.list}>
+          {items.map((l, i) => (
+            <Pressable
+              key={l.title}
+              accessibilityRole="button"
+              onPress={() => {
+                setOpen(false);
+                // Open the page once the sheet has faded out: pushing during a Modal's dismissal can glitch on iOS.
+                setTimeout(() => go(l.href), 250);
+              }}
+              style={({ pressed }) => [s.listRow, i > 0 && s.listSep, pressed && { backgroundColor: t.colors.soft }]}
+            >
+              <View style={s.listIcon}>
+                <Ionicons name={l.icon} size={20} color={t.colors.accentText} />
+              </View>
+              <View style={{ flex: 1 }}>
+                <Text style={s.listTitle}>{l.title}</Text>
+                <Text style={s.listDetail}>{l.detail}</Text>
+              </View>
+              <Ionicons name="chevron-forward" size={20} color={t.colors.muted} />
+            </Pressable>
+          ))}
+        </View>
+      </Sheet>
+    </>
+  );
+}
+
+const useShared = makeStyles((t) => {
+  const brutal = t.button === 'brutal';
+  return {
+    gear: {
+      width: 44,
+      height: 44,
+      borderRadius: brutal ? 10 : 22,
+      alignItems: 'center',
+      justifyContent: 'center',
+      backgroundColor: t.colors.card,
+      ...(brutal ? { borderWidth: 2.5, borderColor: t.colors.ink, boxShadow: `3px 3px 0px ${t.colors.ink}` } : { borderWidth: 1.5, borderColor: t.colors.border }),
+    },
+    list: {
+      backgroundColor: t.colors.card,
+      borderWidth: brutal ? 2.5 : 1.5,
+      borderColor: brutal ? t.colors.ink : t.colors.border,
+      borderRadius: brutal ? 14 : 18,
+      overflow: 'hidden',
+    },
+    listRow: { flexDirection: 'row', alignItems: 'center', gap: 12, paddingVertical: 12, paddingHorizontal: 14 },
+    listSep: { borderTopWidth: brutal ? 2 : 1, borderTopColor: brutal ? t.colors.ink : t.colors.border },
+    listIcon: { width: 38, height: 38, borderRadius: brutal ? 8 : 12, backgroundColor: t.colors.soft, alignItems: 'center', justifyContent: 'center' },
+    listTitle: { fontSize: 17, fontWeight: '700', color: t.colors.ink },
+    listDetail: { fontSize: 13, fontWeight: '600', color: t.colors.muted },
+  };
+});
+
 // Progrès draws its own title, so it has no header bar: keep clear of the status bar.
 function TopInset() {
   return <View style={{ height: useSafeAreaInsets().top }} />;
@@ -91,6 +166,7 @@ export function ProgressBonbon(d: ProgressData) {
             {d.streak > 1 ? `Déjà ${d.streak} jours de suite, continue !` : d.streak === 1 ? 'Une journée de faite, on recommence demain !' : 'Un exercice et ta série commence !'}
           </Text>
         </View>
+        <SettingsButton links={settings} />
       </View>
 
       <View style={s.hero}>
@@ -107,6 +183,10 @@ export function ProgressBonbon(d: ProgressData) {
           </View>
         ))}
       </View>
+
+      {main.map((l) => (
+        <BonbonRow key={l.title} link={l} />
+      ))}
 
       <StudyTimeCard days={d.days} streak={d.streak} tracking={d.tracking} title="Ta semaine" hideStats />
 
@@ -135,14 +215,6 @@ export function ProgressBonbon(d: ProgressData) {
 
       <WordsCard tiers={d.tiers} newThisWeek={d.newWords} due={d.due} />
 
-      <Text style={s.section}>Pour aller plus loin</Text>
-      {main.map((l) => (
-        <BonbonRow key={l.title} link={l} />
-      ))}
-      <Text style={s.section}>Réglages</Text>
-      {settings.map((l) => (
-        <BonbonRow key={l.title} link={l} />
-      ))}
       <Body muted>{FOOTNOTE}</Body>
     </Screen>
   );
@@ -235,7 +307,10 @@ export function ProgressCahier(d: ProgressData) {
       <TopInset />
       <View style={s.hello}>
         <Text style={s.title}>Mes{'\n'}progrès.</Text>
-        <Text style={s.sticker}>{daysLabel(d.streak).toUpperCase()}</Text>
+        <View style={{ flexDirection: 'row', alignItems: 'center', gap: 12 }}>
+          <Text style={s.sticker}>{daysLabel(d.streak).toUpperCase()}</Text>
+          <SettingsButton links={settings} />
+        </View>
       </View>
 
       <View style={s.banner}>
@@ -248,6 +323,23 @@ export function ProgressCahier(d: ProgressData) {
           <Text style={s.bannerValue}>{formatMinutes(week(d.days))}</Text>
         </View>
       </View>
+
+      {main.map((l, i) => (
+        <Pressable
+          key={l.title}
+          accessibilityRole="button"
+          onPress={() => go(l.href)}
+          style={({ pressed }) => [s.card, { backgroundColor: CAHIER_ROW_COLORS[i % CAHIER_ROW_COLORS.length] }, pressed && s.pressed]}
+        >
+          <Text style={s.number}>{String(i + 1).padStart(2, '0')}</Text>
+          <View style={{ flex: 1 }}>
+            <Text style={s.cardTitle}>{l.title}</Text>
+            <Text style={s.cardDetail}>{l.detail}</Text>
+          </View>
+          {l.badge ? <Text style={s.badge}>{l.badge}</Text> : null}
+          <Text style={s.arrow}>→</Text>
+        </Pressable>
+      ))}
 
       <View style={s.bulletin}>
         <View style={s.bulletinHead}>
@@ -279,22 +371,6 @@ export function ProgressCahier(d: ProgressData) {
       <StudyTimeCard days={d.days} streak={d.streak} tracking={d.tracking} title="Ma semaine" hideStats />
       <WordsCard tiers={d.tiers} newThisWeek={d.newWords} due={d.due} />
 
-      {[...main, ...settings].map((l, i) => (
-        <Pressable
-          key={l.title}
-          accessibilityRole="button"
-          onPress={() => go(l.href)}
-          style={({ pressed }) => [s.card, { backgroundColor: CAHIER_ROW_COLORS[i % CAHIER_ROW_COLORS.length] }, pressed && s.pressed]}
-        >
-          <Text style={s.number}>{String(i + 1).padStart(2, '0')}</Text>
-          <View style={{ flex: 1 }}>
-            <Text style={s.cardTitle}>{l.title}</Text>
-            <Text style={s.cardDetail}>{l.detail}</Text>
-          </View>
-          {l.badge ? <Text style={s.badge}>{l.badge}</Text> : null}
-          <Text style={s.arrow}>→</Text>
-        </Pressable>
-      ))}
       <Body muted>{FOOTNOTE}</Body>
     </Screen>
   );
@@ -397,6 +473,7 @@ export function ProgressMetro(d: ProgressData) {
           <Ionicons name="ticket-outline" size={18} color={t.colors.onCta} />
           <Text style={s.ticketText}>{daysLabel(d.streak)}</Text>
         </View>
+        <SettingsButton links={settings} />
       </View>
 
       <View style={s.board}>
@@ -413,6 +490,8 @@ export function ProgressMetro(d: ProgressData) {
           </View>
         ))}
       </View>
+
+      <MetroList title="Correspondances" items={main} />
 
       <View style={s.card}>
         <View style={s.cardHead}>
@@ -449,8 +528,6 @@ export function ProgressMetro(d: ProgressData) {
       <StudyTimeCard days={d.days} streak={d.streak} tracking={d.tracking} title="Cette semaine" hideStats />
       <WordsCard tiers={d.tiers} newThisWeek={d.newWords} due={d.due} />
 
-      <MetroList title="Correspondances" items={main} />
-      <MetroList title="Réglages" items={settings} />
       <Body muted>{FOOTNOTE}</Body>
     </Screen>
   );

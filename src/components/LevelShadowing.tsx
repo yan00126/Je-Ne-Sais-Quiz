@@ -37,7 +37,7 @@ import { speakAt, stopSpeech } from '../lib/speech';
 import { useStudyTimer } from '../lib/useStudyTimer';
 import { makeStyles, useTheme } from '../theme/ThemeProvider';
 import type { Theme } from '../theme/themes';
-import { Body, Button, Card, H2, Label, Screen, shade, tap, tint } from './ui';
+import { Body, Button, Card, Footer, H2, Label, Row, Screen, shade, Sheet, tap, tint } from './ui';
 
 type IconName = ComponentProps<typeof Ionicons>['name'];
 
@@ -210,8 +210,10 @@ function Setup(props: {
   onTextMode: (m: TextMode) => void;
   onStart: () => void;
 }) {
+  const t = useTheme();
   const s = useStyles();
   const spec = LEVEL_SPECS[props.level];
+  const [options, setOptions] = useState(false);
   return (
     <Screen>
       {props.header}
@@ -225,18 +227,39 @@ function Setup(props: {
         ))}
       </View>
 
-      <Card style={s.settings}>
-        <Label>Déroulement de chaque phrase</Label>
-        <PhaseTrack level={props.level} />
-        <View style={s.divider} />
-        <Label>Pause pour répéter</Label>
-        <Segmented options={PAUSE_ORDER.map((p) => ({ value: p, label: PAUSES[p].label }))} value={props.pause} onChange={props.onPause} />
-        <Label>Texte de la phrase</Label>
-        <Segmented options={TEXT_ORDER.map((m) => ({ value: m, label: TEXT_MODES[m] }))} value={props.textMode} onChange={props.onTextMode} />
-        <Text style={s.hint}>{TEXT_HINTS[props.textMode]}</Text>
-      </Card>
+      {/* The pause and text options live in a sheet; « Commencer » is pinned at the bottom with them. */}
+      <Footer>
+        <Pressable
+          accessibilityRole="button"
+          accessibilityLabel="Options de la série"
+          onPress={() => {
+            tap();
+            setOptions(true);
+          }}
+          style={({ pressed }) => [s.optionsRow, pressed && s.pressed]}
+        >
+          <Ionicons name="options-outline" size={20} color={t.colors.accentText} />
+          <Text style={s.optionsText} numberOfLines={1}>
+            Pause {PAUSES[props.pause].label.toLowerCase()} · Texte {TEXT_MODES[props.textMode].toLowerCase()}
+          </Text>
+          <Text style={s.optionsEdit}>Modifier</Text>
+        </Pressable>
+        <Button title={`Commencer · ${SESSION_SIZE} phrases ${spec.level}`} icon="play" onPress={props.onStart} />
+      </Footer>
 
-      <Button title={`Commencer · ${SESSION_SIZE} phrases ${spec.level}`} icon="play" onPress={props.onStart} />
+      <Sheet visible={options} title="Options de la série" onClose={() => setOptions(false)}>
+        <View style={s.settings}>
+          <Label>Déroulement de chaque phrase</Label>
+          <PhaseTrack level={props.level} />
+          <View style={s.divider} />
+          <Label>Pause pour répéter</Label>
+          <Segmented options={PAUSE_ORDER.map((p) => ({ value: p, label: PAUSES[p].label }))} value={props.pause} onChange={props.onPause} />
+          <Label>Texte de la phrase</Label>
+          <Segmented options={TEXT_ORDER.map((m) => ({ value: m, label: TEXT_MODES[m] }))} value={props.textMode} onChange={props.onTextMode} />
+          <Text style={s.hint}>{TEXT_HINTS[props.textMode]}</Text>
+        </View>
+        <Button title="OK" onPress={() => setOptions(false)} />
+      </Sheet>
     </Screen>
   );
 }
@@ -561,8 +584,12 @@ function Finished(props: { sentences: Sentence[]; level: ShadowLevel; completed:
         ))}
       </Card>
 
-      <Button title="Nouvelle série" icon="refresh" onPress={props.onAgain} />
-      <Button title="Changer de niveau" variant="outline" onPress={props.onChangeLevel} />
+      <Footer>
+        <Row>
+          <Button title="Changer de niveau" variant="outline" onPress={props.onChangeLevel} />
+          <Button title="Nouvelle série" icon="refresh" onPress={props.onAgain} />
+        </Row>
+      </Footer>
     </Screen>
   );
 }
@@ -572,6 +599,18 @@ const useStyles = makeStyles((t) => {
   const ink = t.colors.ink;
   return {
     settings: { gap: 12 },
+    optionsRow: {
+      flexDirection: 'row',
+      alignItems: 'center',
+      gap: 8,
+      paddingVertical: 8,
+      paddingHorizontal: 12,
+      borderRadius: t.radius.field,
+      backgroundColor: brutal ? t.colors.card : t.colors.soft,
+      ...(brutal ? { borderWidth: 2, borderColor: ink } : null),
+    },
+    optionsText: { flex: 1, fontSize: 14, fontWeight: '600', color: t.colors.ink },
+    optionsEdit: { fontSize: 14, fontWeight: '800', color: t.colors.accentText },
     hint: { fontSize: 13, lineHeight: 18, fontWeight: '500', color: t.colors.muted, marginTop: -4 },
     divider: { height: brutal ? 2 : 1, backgroundColor: brutal ? ink : t.colors.border, marginVertical: 2 },
 

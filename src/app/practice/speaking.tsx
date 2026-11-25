@@ -9,7 +9,7 @@ import {
 import { useSQLiteContext } from 'expo-sqlite';
 import { useEffect, useState } from 'react';
 import { Alert, View } from 'react-native';
-import { Body, Button, Card, H2, Screen } from '../../components/ui';
+import { Body, Button, Card, Footer, H2, Screen } from '../../components/ui';
 import { SPEAKING_TASKS, type SpeakingTask } from '../../data/prompts';
 import { getItemsDoneToday, logAttempt, pickNextItem } from '../../lib/db';
 import { saveRecording } from '../../lib/recordings';
@@ -113,11 +113,14 @@ export default function Speaking() {
           {mmss(elapsed)} / {mmss(task.seconds)}
         </H2>
       </Card>
-      {state.isRecording ? (
-        <Button title="■ Arrêter" color={t.colors.red} onPress={stop} />
-      ) : (
-        <Button title={uri ? '● Recommencer' : '● Enregistrer'} color={t.colors.red} onPress={start} />
-      )}
+      <Footer>
+        {uri && !state.isRecording && <Button title="▶︎ Réécouter ma réponse" variant="outline" onPress={play} />}
+        {state.isRecording ? (
+          <Button title="■ Arrêter" color={t.colors.red} onPress={stop} />
+        ) : (
+          <Button title={uri ? '● Recommencer' : '● Enregistrer'} color={t.colors.red} onPress={start} />
+        )}
+      </Footer>
       {uri && !state.isRecording && (
         <>
           {!speakingCounts(lastSeconds, task.seconds) && (
@@ -126,7 +129,6 @@ export default function Speaking() {
               {mmss(lastSeconds)}).
             </Body>
           )}
-          <Button title="▶︎ Réécouter ma réponse" variant="outline" onPress={play} />
           <Body muted>
             Réécoutez-vous : avez-vous répondu à toutes les parties de la consigne ? Utilisé des connecteurs ? Parlé sans longues pauses ? La
             transcription et la correction automatique arrivent dans la prochaine version.

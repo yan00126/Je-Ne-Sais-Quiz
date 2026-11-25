@@ -48,7 +48,7 @@ function screen(path: string, database: Record<string, Function> = {}) {
         case 'expo-router': return { useFocusEffect: (effect: () => void) => effectHook(effect, []) };
         case 'expo-sqlite': return { useSQLiteContext: () => db };
         case '@expo/vector-icons/Ionicons': return { default: 'Ionicons' };
-        case '../../components/ui': return { Screen: 'Screen', Body: 'Body', Button: 'Button', Card: 'Card', H1: 'H1', H2: 'H2' };
+        case '../../components/ui': return { Screen: 'Screen', Body: 'Body', Button: 'Button', Card: 'Card', H1: 'H1', H2: 'H2', Footer: 'Footer', Sheet: 'Sheet' };
         case '../../components/ResultBanner': return {};
         case '../../theme/ThemeProvider': return { makeStyles: () => () => ({}), useTheme: () => ({ colors: {} }) };
         case '../../data/prompts': return { WRITING_TASKS };
@@ -76,11 +76,14 @@ function screen(path: string, database: Record<string, Function> = {}) {
   const elements = (value: any = tree): Element[] => {
     if (Array.isArray(value)) return value.flatMap(elements);
     if (!value || typeof value !== 'object') return [];
+    // A closed sheet (a Modal) shows none of its content.
+    if (value.type === 'Sheet' && !value.props.visible) return [value];
     return [value, ...elements(value.props?.children ?? null)];
   };
   const text = (value: any = tree): string => {
     if (Array.isArray(value)) return value.map(text).join('');
     if (value === null || value === undefined || typeof value === 'boolean') return '';
+    if (value.type === 'Sheet' && !value.props.visible) return '';
     return typeof value === 'object' ? text(value.props?.children ?? null) : String(value);
   };
   const button = (title: string) => {

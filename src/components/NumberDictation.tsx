@@ -10,7 +10,7 @@ import { speak } from '../lib/speech';
 import { useStudyTimer } from '../lib/useStudyTimer';
 import { makeStyles, useTheme } from '../theme/ThemeProvider';
 import { outcomeColor, ResultBanner } from './ResultBanner';
-import { Bar, Body, Button, Card, H2, Label, Screen } from './ui';
+import { Bar, Body, Button, Card, H2, Label, Row, Screen } from './ui';
 
 type Checked = { score: number; typed: string; gaveUp: boolean; levelUp: number | null };
 
@@ -111,8 +111,65 @@ export function NumberDictation({ header }: { header?: ReactNode }) {
   const outcome = checked ? (checked.score === 1 ? 'correct' : checked.score > 0 ? 'almost' : 'wrong') : null;
   const total = seriesScores.reduce((a, b) => a + b, 0);
 
+  // One field: in the bottom bar above the keyboard while you type, in the card once checked.
+  const answerField = (
+    <TextInput
+      key={count}
+      style={[styles.input, outcome && { borderColor: outcomeColor(t, outcome) }]}
+      value={checked ? checked.typed : typed}
+      onChangeText={(v) => {
+        markActive();
+        setTyped(v);
+      }}
+      editable={!checked}
+      keyboardType={item.keyboard}
+      autoCapitalize="none"
+      autoCorrect={false}
+      spellCheck={false}
+      autoFocus={!checked}
+      placeholder="Votre réponse"
+      returnKeyType="done"
+      onSubmitEditing={() => typed.trim() && check()}
+    />
+  );
+
+  // The field, check, the result and « Continuer » stay pinned at the bottom, above the keyboard.
+  const footer = !checked ? (
+    <>
+      {answerField}
+      <Row>
+        <Button title="Je ne sais pas" variant="outline" color={t.colors.muted} onPress={() => check(true)} />
+        <Button title="Vérifier" disabled={!typed.trim()} onPress={() => check()} />
+      </Row>
+    </>
+  ) : (
+    <ResultBanner
+      key={count}
+      outcome={outcome!}
+      title={checked.score === 1 ? 'Exact !' : checked.score > 0 ? 'Juste' : checked.gaveUp ? 'À retenir' : 'Pas tout à fait'}
+      detail={
+        checked.score === 0.5
+          ? replays.current > 0
+            ? 'Après réécoute : compte pour moitié'
+            : 'Un peu lent : compte pour moitié'
+          : undefined
+      }
+    >
+      {checked.levelUp !== null && (
+        <Body>
+          Bravo ! {category.label} passe au {tierLabel(checked.levelUp)} : {checked.levelUp === 1 ? 'plus rapide et des nombres plus longs' : 'dans des phrases'}.
+        </Body>
+      )}
+      {finished ? (
+        <Button title="Nouvelle série" onPress={newSeries} />
+      ) : (
+        <Button title="Continuer" color={outcomeColor(t, outcome!)} onPress={() => next(state)} />
+      )}
+    </ResultBanner>
+  );
+
   return (
-    <Screen>
+    <Screen footer={footer} fieldAtEnd>
       {header}
       <Card>
         <Body muted>
@@ -136,26 +193,8 @@ export function NumberDictation({ header }: { header?: ReactNode }) {
           </View>
         </View>
         {!checked && <Body muted>{item.prompt}. Réécouter compte comme une demi-réussite.</Body>}
-        {!(checked?.gaveUp) && (
-          <TextInput
-            key={count}
-            style={[styles.input, outcome && { borderColor: outcomeColor(t, outcome) }]}
-            value={checked ? checked.typed : typed}
-            onChangeText={(v) => {
-              markActive();
-              setTyped(v);
-            }}
-            editable={!checked}
-            keyboardType={item.keyboard}
-            autoCapitalize="none"
-            autoCorrect={false}
-            spellCheck={false}
-            autoFocus
-            placeholder="Votre réponse"
-            returnKeyType="done"
-            onSubmitEditing={() => typed.trim() && check()}
-          />
-        )}
+        {/* Once checked, the answer you typed stays in the card; before that, the field is in the bottom bar. */}
+        {checked && !checked.gaveUp && answerField}
         {checked && (
           <View style={{ gap: 4 }}>
             <Text style={styles.answer}>{item.display}</Text>
@@ -164,38 +203,12 @@ export function NumberDictation({ header }: { header?: ReactNode }) {
         )}
       </Card>
 
-      {!checked ? (
-        <View style={{ gap: 8 }}>
-          <Button title="Vérifier" disabled={!typed.trim()} onPress={() => check()} />
-          <Button title="Je ne sais pas" variant="outline" color={t.colors.muted} onPress={() => check(true)} />
-        </View>
-      ) : (
-        <ResultBanner
-          outcome={outcome!}
-          title={checked.score === 1 ? 'Exact !' : checked.score > 0 ? 'Juste' : checked.gaveUp ? 'À retenir' : 'Pas tout à fait'}
-          detail={
-            checked.score === 0.5
-              ? replays.current > 0
-                ? 'Après réécoute : compte pour moitié'
-                : 'Un peu lent : compte pour moitié'
-              : undefined
-          }
-        >
-          {checked.levelUp !== null && (
-            <Body>
-              Bravo ! {category.label} passe au {tierLabel(checked.levelUp)} : {checked.levelUp === 1 ? 'plus rapide et des nombres plus longs' : 'dans des phrases'}.
-            </Body>
-          )}
-          {!finished && <Button title="Continuer" color={outcomeColor(t, outcome!)} onPress={() => next(state)} />}
-        </ResultBanner>
-      )}
-
-      {finished && <Summary state={state} total={total} onAgain={newSeries} />}
+      {finished && <Summary state={state} total={total} />}
     </Screen>
   );
 }
 
-function Summary({ state, total, onAgain }: { state: DrillState; total: number; onAgain: () => void }) {
+function Summary({ state, total }: { state: DrillState; total: number }) {
   const styles = useStyles();
   const seen = CATEGORIES.filter((c) => state.categories[c.id].answers > 0);
   return (
@@ -216,7 +229,6 @@ function Summary({ state, total, onAgain }: { state: DrillState; total: number; 
         );
       })}
       <Body muted>Les catégories les plus faibles reviennent le plus souvent. Au-dessus de 90 %, une catégorie passe au niveau suivant.</Body>
-      <Button title="Nouvelle série" onPress={onAgain} />
     </Card>
   );
 }

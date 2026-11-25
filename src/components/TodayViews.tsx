@@ -9,7 +9,7 @@ import type { StepId } from '../lib/db';
 import type { Level } from '../lib/level';
 import type { Step } from '../lib/plan';
 import { makeStyles, useTheme } from '../theme/ThemeProvider';
-import { GridPaper, tap } from './ui';
+import { BottomBar, GridPaper, tap } from './ui';
 
 // count: short progress for a tile's corner (« 2/3 », « 48 cartes »).
 export type StepState = { step: Step; done: boolean; label: string; count: string; n: number; target: number };
@@ -39,13 +39,16 @@ function go(href: Href) {
   router.push(href);
 }
 
-// The page: scrolls on small phones, and lets the « go » button sit at the bottom on tall ones.
-function Page({ style, paper, children }: { style: ViewStyle | ViewStyle[]; paper?: boolean; children: ReactNode }) {
+// The page: the plan scrolls on small phones, and the « go » button stays pinned above the tab bar.
+function Page({ style, paper, footer, children }: { style: ViewStyle | ViewStyle[]; paper?: boolean; footer: ReactNode; children: ReactNode }) {
   const t = useTheme();
   return (
     <View style={{ flex: 1, backgroundColor: t.colors.bg }}>
       {paper && <GridPaper />}
-      <ScrollView contentContainerStyle={style}>{children}</ScrollView>
+      <ScrollView style={{ flex: 1 }} contentContainerStyle={style}>
+        {children}
+      </ScrollView>
+      <BottomBar plain>{footer}</BottomBar>
     </View>
   );
 }
@@ -79,7 +82,18 @@ export function TodayBonbon({ steps, minutes, streak, level }: TodayData) {
   const done = steps.filter((x) => x.done).length;
   const next = nextStep(steps);
   return (
-    <Page style={[s.screen, { paddingTop: top + 16 }]}>
+    <Page
+      style={[s.screen, { paddingTop: top + 16 }]}
+      footer={
+        <Pressable
+          accessibilityRole="button"
+          onPress={() => go(next >= 0 ? steps[next].step.href : '/practice')}
+          style={({ pressed: p }) => [s.cta, p && { transform: [{ translateY: 2 }], borderBottomWidth: 2 }]}
+        >
+          <Text style={s.ctaText}>{next >= 0 ? (done === 0 ? 'C’est parti !' : 'On continue !') : 'Tout est fait, bravo !'}</Text>
+        </Pressable>
+      }
+    >
       <View style={s.hello}>
         <Mimi />
         <View style={{ flex: 1 }}>
@@ -145,14 +159,6 @@ export function TodayBonbon({ steps, minutes, streak, level }: TodayData) {
           );
         })}
       </View>
-
-      <Pressable
-        accessibilityRole="button"
-        onPress={() => go(next >= 0 ? steps[next].step.href : '/practice')}
-        style={({ pressed: p }) => [s.cta, p && { transform: [{ translateY: 2 }], borderBottomWidth: 2 }]}
-      >
-        <Text style={s.ctaText}>{next >= 0 ? (done === 0 ? 'C’est parti !' : 'On continue !') : 'Tout est fait, bravo !'}</Text>
-      </Pressable>
     </Page>
   );
 }
@@ -193,7 +199,6 @@ const useBonbon = makeStyles((t) => ({
   tileTitlePair: { minHeight: 42 },
   tileDetail: { fontSize: 13, fontWeight: '700' },
   cta: {
-    marginTop: 'auto',
     minHeight: 56,
     borderRadius: 999,
     backgroundColor: t.colors.cta,
@@ -214,7 +219,19 @@ export function TodayCahier({ steps, minutes, streak }: TodayData) {
   const done = steps.filter((x) => x.done).length;
   const next = nextStep(steps);
   return (
-    <Page paper style={[s.screen, { paddingTop: top + 16 }]}>
+    <Page
+      paper
+      style={[s.screen, { paddingTop: top + 16 }]}
+      footer={
+        <Pressable
+          accessibilityRole="button"
+          onPress={() => go(next >= 0 ? steps[next].step.href : '/practice')}
+          style={({ pressed: p }) => [s.cta, p && s.rowPressed]}
+        >
+          <Text style={s.ctaText}>{next >= 0 ? 'Continuer →' : 'Tout est fait !'}</Text>
+        </Pressable>
+      }
+    >
       <View style={s.hello}>
         <Text style={s.helloTitle}>Bonjour{'\n'}Felix.</Text>
         <Text style={s.sticker}>{days(streak).toUpperCase()}</Text>
@@ -265,14 +282,6 @@ export function TodayCahier({ steps, minutes, streak }: TodayData) {
           );
         })}
       </View>
-
-      <Pressable
-        accessibilityRole="button"
-        onPress={() => go(next >= 0 ? steps[next].step.href : '/practice')}
-        style={({ pressed: p }) => [s.cta, p && s.rowPressed]}
-      >
-        <Text style={s.ctaText}>{next >= 0 ? 'Continuer →' : 'Tout est fait !'}</Text>
-      </Pressable>
     </Page>
   );
 }
@@ -335,7 +344,6 @@ const useCahier = makeStyles((t) => ({
   blocks: { flexDirection: 'row', gap: 6 },
   block: { flex: 1, height: 12, borderWidth: 2, borderColor: t.colors.ink, backgroundColor: t.colors.card },
   cta: {
-    marginTop: 'auto',
     minHeight: 58,
     borderWidth: 3,
     borderColor: t.colors.ink,
@@ -358,7 +366,21 @@ export function TodayMetro({ steps, minutes, streak, level, now }: TodayData) {
   const next = nextStep(steps);
   const current = next >= 0 ? steps[next] : null;
   return (
-    <Page style={[s.screen, { paddingTop: top + 16 }]}>
+    <Page
+      style={[s.screen, { paddingTop: top + 16 }]}
+      footer={
+        <Pressable
+          accessibilityRole="button"
+          onPress={() => go(current ? current.step.href : '/practice')}
+          style={({ pressed: p }) => [s.cta, p && { transform: [{ translateY: 2 }], borderBottomWidth: 1 }]}
+        >
+          <Text style={s.ctaText} numberOfLines={1} adjustsFontSizeToFit>
+            {current ? `Monter : ${current.step.title}` : 'Voir les exercices'}
+          </Text>
+          <Ionicons name="arrow-forward" size={20} color={t.colors.onCta} />
+        </Pressable>
+      }
+    >
       <View style={s.hello}>
         <View style={{ flex: 1, gap: 2 }}>
           <Text style={s.kicker}>
@@ -455,17 +477,6 @@ export function TodayMetro({ steps, minutes, streak, level, now }: TodayData) {
           );
         })}
       </View>
-
-      <Pressable
-        accessibilityRole="button"
-        onPress={() => go(current ? current.step.href : '/practice')}
-        style={({ pressed: p }) => [s.cta, p && { transform: [{ translateY: 2 }], borderBottomWidth: 1 }]}
-      >
-        <Text style={s.ctaText} numberOfLines={1} adjustsFontSizeToFit>
-          {current ? `Monter : ${current.step.title}` : 'Voir les exercices'}
-        </Text>
-        <Ionicons name="arrow-forward" size={20} color={t.colors.onCta} />
-      </Pressable>
     </Page>
   );
 }
@@ -531,7 +542,6 @@ const useMetro = makeStyles((t) => ({
   segments: { flexDirection: 'row', gap: 6 },
   segment: { flex: 1, height: 6, borderRadius: 99 },
   cta: {
-    marginTop: 'auto',
     minHeight: 56,
     borderRadius: 14,
     backgroundColor: t.colors.cta,

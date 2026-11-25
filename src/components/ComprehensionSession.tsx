@@ -9,7 +9,7 @@ import { LEVELS, nextLevel, playbackFor, PROMOTE_AT, WINDOW, type LevelState } f
 import { todaysPlan } from '../lib/plan';
 import { useStudyTimer } from '../lib/useStudyTimer';
 import { QuizRunner } from './QuizRunner';
-import { Body, Button, Card, H2, Screen } from './ui';
+import { Body, Button, Card, Footer, H2, Screen } from './ui';
 
 // `header` goes above the document, e.g. the listening mode switcher.
 export function ComprehensionSession({
@@ -87,6 +87,28 @@ export function ComprehensionSession({
   return (
     <Screen>
       {header}
+      {/* After the last question: the score, any level change and « Document suivant » are pinned at the bottom,
+          so they show wherever the page was scrolled; the notes and the transcript stay on the page. */}
+      {result !== null && (
+        <>
+          <Footer>
+            <H2>
+              Résultat : {result}/{item.questions.length}
+            </H2>
+            {levelChange === 'up' && <Body>Bravo ! Vous passez au niveau {levelState?.level}.</Body>}
+            {levelChange === 'down' && (
+              <Body>On revient au niveau {levelState?.level} pour consolider, puis vous remonterez.</Body>
+            )}
+            <Button title="Document suivant" onPress={load} />
+          </Footer>
+          {(skill === 'listening' || result < item.questions.length) && (
+            <Card>
+              {skill === 'listening' && <Body muted>La transcription est affichée ci-dessous.</Body>}
+              {result < item.questions.length && <Body muted>Vos erreurs sont dans Progrès → Mes erreurs.</Body>}
+            </Card>
+          )}
+        </>
+      )}
       <Card>
         <Body muted>
           Niveau {item.level} · {item.title} · aujourd'hui {Math.min(doneToday, target)}/{target}
@@ -120,7 +142,7 @@ export function ComprehensionSession({
           </View>
         )}
       </Card>
-      {result === null ? (
+      {result === null && (
         <QuizRunner
           key={item.id}
           questions={item.questions}
@@ -129,19 +151,6 @@ export function ComprehensionSession({
           }}
           onFinish={finish}
         />
-      ) : (
-        <Card>
-          <H2>
-            Résultat : {result}/{item.questions.length}
-          </H2>
-          {skill === 'listening' && <Body muted>La transcription est affichée ci-dessus.</Body>}
-          {levelChange === 'up' && <Body>Bravo ! Vous passez au niveau {levelState?.level}.</Body>}
-          {levelChange === 'down' && (
-            <Body>On revient au niveau {levelState?.level} pour consolider, puis vous remonterez.</Body>
-          )}
-          {result < item.questions.length && <Body muted>Vos erreurs sont dans Progrès → Mes erreurs.</Body>}
-          <Button title="Document suivant" onPress={load} />
-        </Card>
       )}
     </Screen>
   );

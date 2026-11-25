@@ -3,7 +3,7 @@ import Ionicons from '@expo/vector-icons/Ionicons';
 import { Pressable, Text, View } from 'react-native';
 import type { Question } from '../data/comprehension';
 import { ResultBanner } from './ResultBanner';
-import { Body, Button, Card, H2, textColor, tint } from './ui';
+import { Body, Button, Card, Footer, H2, textColor, tint } from './ui';
 import { makeStyles, useTheme } from '../theme/ThemeProvider';
 
 // Multiple-choice questions, one at a time, with the right answer revealed after each pick.
@@ -68,11 +68,19 @@ export function QuizRunner({
           );
         })}
       </View>
-      {picked !== null && q.explanation && <Body muted>{q.explanation}</Body>}
+      {/* The result, its explanation and « next » stay pinned at the bottom, so they show without a scroll. */}
       {picked !== null && (
-        <ResultBanner key={index} outcome={right ? 'correct' : 'wrong'} title={right ? 'Correct !' : 'Pas tout à fait'}>
-          <Button title={last ? 'Voir le résultat' : 'Question suivante'} color={right ? t.colors.green : t.colors.red} onPress={next} />
-        </ResultBanner>
+        <Footer>
+          <ResultBanner
+            key={index}
+            outcome={right ? 'correct' : 'wrong'}
+            title={right ? 'Correct !' : 'Pas tout à fait'}
+            detail={right ? undefined : `Réponse : ${q.choices[q.answer]}`}
+          >
+            {q.explanation ? <Body>{q.explanation}</Body> : null}
+            <Button title={last ? 'Voir le résultat' : 'Question suivante'} color={right ? t.colors.green : t.colors.red} onPress={next} />
+          </ResultBanner>
+        </Footer>
       )}
     </Card>
   );
