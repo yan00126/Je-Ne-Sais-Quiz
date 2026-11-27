@@ -1,14 +1,15 @@
 import Ionicons from '@expo/vector-icons/Ionicons';
-import { useFocusEffect } from 'expo-router';
+import { useFocusEffect, useLocalSearchParams } from 'expo-router';
 import { useSQLiteContext } from 'expo-sqlite';
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
-import { Linking, Pressable, Text, TextInput, View } from 'react-native';
+import { Linking, Platform, Pressable, Text, TextInput, View } from 'react-native';
 import { outcomeColor, ResultBanner } from '../../components/ResultBanner';
 import { Body, Button, Card, Footer, H1, Screen, shade, tap, textColor, tint } from '../../components/ui';
 import { REAL_EXAMPLES, WORD_AUDIO, type Recording } from '../../data/recordings';
 import { STARTER_VOCAB, TOPICS } from '../../data/vocab';
 import { choiceOptions, makePool, type ChoiceOption } from '../../lib/distractors';
-import { clozeReveal, exerciseFor, gradeAnswer, hint, makeCloze, type ExerciseKind, type Verdict } from '../../lib/answer';
+import { clozeReveal, exerciseFor, gradeAnswer, hint, makeCloze, maxHints, phraseKind, type ExerciseKind, type Verdict } from '../../lib/answer';
+import { buildTiles, checkOrder, type Tile } from '../../lib/wordOrder';
 import type { Outcome } from '../../lib/feedback';
 import { getStudyQueue, logAttempt, saveReview, type ReviewCard } from '../../lib/db';
 import { markActive } from '../../lib/activity';
@@ -41,6 +42,10 @@ export default function Cards() {
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const grading = useRef(false);
+  // Web only, for the fold check: /cards?exercise=build&card=v087 shows that word (else the current card)
+  // as a word-order question. The iPhone app ignores these.
+  const params = useLocalSearchParams<{ exercise?: string; card?: string }>();
+  const preview = Platform.OS === 'web' && params.exercise === 'build';
 
   useFocusEffect(
     useCallback(() => {
@@ -59,7 +64,10 @@ export default function Cards() {
 
   if (!queue) return error ? <Screen><Body>{error}</Body></Screen> : null;
 
-  const { card, nextDue } = studyQueue(queue, now);
+  const next = studyQueue(queue, now);
+  const previewWord = preview && next.card ? STARTER_VOCAB.find((v) => v.id === params.card) : undefined;
+  const card = previewWord && next.card ? ({ ...next.card, ...previewWord } as ReviewCard) : next.card;
+  const nextDue = next.nextDue;
   if (!card) {
     if (nextDue !== null) {
       return (
@@ -101,7 +109,8 @@ export default function Cards() {
   }
 
   const cloze = makeCloze(card.fr, card.example);
-  const kind = exerciseFor(card.reps, cloze !== null, card.state === State.Relearning);
+  const kind: ExerciseKind =
+    preview ? 'build' : exerciseFor(card.reps, cloze !== null, card.state === State.Relearning, phraseKind(card.fr));
   const key = `${card.id}-${card.reps}-${queue.length}`;
 
   return (
@@ -112,6 +121,8 @@ export default function Cards() {
         <Flashcard key={key} card={card} onGrade={grade} saving={saving} />
       ) : kind === 'choice' || kind === 'clozeChoice' ? (
         <ChoiceExercise key={key} card={card} cloze={kind === 'clozeChoice' ? cloze : null} onGrade={grade} saving={saving} />
+      ) : kind === 'build' ? (
+        <BuildExercise key={key} card={card} onGrade={grade} saving={saving} />
       ) : (
         <TypedExercise key={key} card={card} kind={kind} cloze={cloze} onGrade={grade} saving={saving} />
       )}
@@ -229,7 +240,7 @@ function Credit({ rec }: { rec: Recording }) {
   );
 }
 
-type TypedKind = Exclude<ExerciseKind, 'flashcard' | 'choice' | 'clozeChoice'>;
+type TypedKind = Exclude<ExerciseKind, 'flashcard' | 'choice' | 'clozeChoice' | 'build'>;
 
 const PROMPTS: Record<TypedKind, string> = {
   dictation: 'Dictée : écoutez et écrivez le mot',
@@ -266,7 +277,7 @@ function TypedExercise({
   const reveal = kind === 'cloze' && cloze ? clozeReveal(card.fr, cloze) : { word: card.fr, entry: null };
   // What the hint spells out: the first form of the answer, without grammar notes like "(+ subj.)".
   const hintBase = expected.split('/')[0].replace(/\(.*?\)/g, '').trim();
-  const maxHints = Math.max(...hintBase.split(/[\s'’-]+/).map((w) => w.length)) - 1;
+  const hintLimit = maxHints(hintBase);
 
   useEffect(() => {
     if (kind === 'dictation') sayWord(card);
@@ -344,7 +355,7 @@ function TypedExercise({
                   title="💡 Indice"
                   variant="outline"
                   color={t.colors.amber}
-                  disabled={hints >= maxHints}
+                  disabled={hints >= hintLimit}
                   onPress={() => setHints((n) => n + 1)}
                 />
               </View>
@@ -447,6 +458,112 @@ function ChoiceExercise({
   );
 }
 
+// Long phrases: tap the words in order to build the phrase from its meaning. Tapping a placed word
+// sends it back. A couple of spare words from the same theme make the last pick more than a formality.
+function BuildExercise({ card, onGrade, saving }: { card: ReviewCard; onGrade: (g: Grade) => void; saving: boolean }) {
+  const t = useTheme();
+  const styles = useStyles();
+  const tiles = useMemo(() => buildTiles(card, POOL, `${card.id}:${card.reps}:${card.lapses}`), [card.id, card.reps, card.lapses]);
+  const [picked, setPicked] = useState<Tile[]>([]);
+  const [result, setResult] = useState<'correct' | 'wrong' | 'unknown' | null>(null);
+  const answered = result !== null;
+  const outcome: Outcome = result === 'correct' ? 'correct' : 'wrong';
+  const done = useRef(false);
+  const sayLater = useRef<ReturnType<typeof setTimeout> | undefined>(undefined);
+  useEffect(() => () => clearTimeout(sayLater.current), []);
+
+  function finish(r: 'correct' | 'wrong' | 'unknown') {
+    if (done.current) return;
+    done.current = true;
+    markActive();
+    setResult(r);
+    // Let the result sound finish before the phrase is read out; not if the next card is already up.
+    sayLater.current = setTimeout(() => sayWord(card), 450);
+  }
+
+  return (
+    <>
+      <Card style={[styles.flashcard, styles.choiceCard]}>
+        <Text style={styles.label}>Remettez les mots dans l’ordre</Text>
+        <Text style={styles.meaning}>{card.en}</Text>
+        {!(result === 'unknown' && !picked.length) && (<View
+          accessible={!picked.length}
+          style={[styles.buildLine, answered && { borderColor: result === 'correct' ? t.colors.green : t.colors.red, borderStyle: 'solid' }]}
+          accessibilityLabel={picked.length ? `Votre réponse : ${picked.map((p) => p.text).join(' ')}` : 'Votre réponse est vide'}
+        >
+          {picked.map((p) => (
+            <WordTile key={p.id} text={p.text} hint={answered ? undefined : 'Touchez pour retirer'} disabled={answered} onPress={() => setPicked((list) => list.filter((x) => x.id !== p.id))} />
+          ))}
+        </View>)}
+        {answered && (
+          <View style={{ gap: 6 }}>
+            {result !== 'correct' && <Text style={styles.label}>La réponse</Text>}
+            <Text style={styles.word}>{card.fr}</Text>
+            <Example card={card} />
+          </View>
+        )}
+      </Card>
+      {!answered && (
+        <View style={styles.bank}>
+          {tiles.map((tile) => {
+            const used = picked.some((p) => p.id === tile.id);
+            return (
+              <WordTile key={tile.id} text={tile.text} placeholder={used} disabled={used} onPress={() => { markActive(); setPicked((list) => [...list, tile]); }} />
+            );
+          })}
+        </View>
+      )}
+      <Footer>
+        {!answered ? (
+          <>
+            <Button title="Je ne sais pas" variant="outline" color={t.colors.muted} onPress={() => finish('unknown')} />
+            <Button title="Vérifier" disabled={!picked.length} onPress={() => finish(checkOrder(picked, card.fr) ? 'correct' : 'wrong')} />
+          </>
+        ) : (
+          <ResultBanner outcome={outcome} title={result === 'correct' ? 'Correct !' : result === 'unknown' ? 'À retenir' : 'Pas tout à fait'}>
+            <Button title="Continuer" disabled={saving} color={outcomeColor(t, outcome)} onPress={() => onGrade(result === 'correct' ? Rating.Good : Rating.Again)} />
+          </ResultBanner>
+        )}
+      </Footer>
+    </>
+  );
+}
+
+// A word to place. A used word leaves an empty slot behind so the bank doesn't jump around.
+function WordTile({ text, onPress, disabled, placeholder, hint }: { text: string; onPress: () => void; disabled?: boolean; placeholder?: boolean; hint?: string }) {
+  const t = useTheme();
+  const styles = useStyles();
+  const brutal = t.button === 'brutal';
+  return (
+    <Pressable
+      accessibilityRole="button"
+      accessibilityLabel={text.replace(/'/g, '’')}
+      accessibilityHint={hint}
+      accessibilityState={{ disabled: !!disabled }}
+      accessibilityElementsHidden={placeholder}
+      importantForAccessibility={placeholder ? 'no-hide-descendants' : 'auto'}
+      disabled={disabled}
+      onPress={() => {
+        tap();
+        onPress();
+      }}
+      style={({ pressed }) => [
+        styles.tile,
+        placeholder
+          ? { backgroundColor: t.colors.border, borderColor: t.colors.border, borderBottomWidth: 2, opacity: 0.5 }
+          : brutal
+            ? [styles.optionBrutal, { backgroundColor: t.colors.card }, pressed && styles.gradeBrutalPressed]
+            : [
+                { backgroundColor: t.colors.card, borderColor: t.colors.border, borderBottomColor: shade(t.colors.border, 0.12) },
+                pressed && { borderBottomWidth: 2, transform: [{ translateY: 2 }] },
+              ],
+      ]}
+    >
+      <Text style={[styles.tileText, { color: placeholder ? 'transparent' : t.colors.ink }]}>{text.replace(/'/g, '’')}</Text>
+    </Pressable>
+  );
+}
+
 // One answer tile. Once answered: the right one turns green, a wrong pick red, and each shows its meaning.
 function OptionButton({ option, state, onPress }: { option: ChoiceOption; state: 'idle' | 'right' | 'wrong' | 'other'; onPress: () => void }) {
   const t = useTheme();
@@ -537,4 +654,20 @@ const useStyles = makeStyles((t) => ({
   optionText: { fontSize: 18, fontWeight: '700' },
   optionGloss: { fontSize: 14, opacity: 0.85 },
   gradeInterval: { fontSize: 12, fontWeight: '600', opacity: 0.8 },
+  buildLine: {
+    flexDirection: 'row',
+    flexWrap: 'wrap',
+    gap: 8,
+    minHeight: 64,
+    padding: 8,
+    borderRadius: t.radius.field,
+    borderWidth: 2,
+    borderStyle: 'dashed',
+    borderColor: t.colors.border,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  bank: { flexDirection: 'row', flexWrap: 'wrap', gap: 10, justifyContent: 'center' },
+  tile: { paddingVertical: 10, paddingHorizontal: 14, borderRadius: t.radius.field, borderWidth: 2, borderBottomWidth: 4, minHeight: 48, justifyContent: 'center' },
+  tileText: { fontSize: 18, fontWeight: '700' },
 }));

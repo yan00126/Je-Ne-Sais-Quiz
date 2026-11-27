@@ -1,6 +1,6 @@
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
-import { clozeReveal, exerciseFor, gradeAnswer, headword, hint, makeCloze } from './answer.ts';
+import { clozeReveal, exerciseFor, gradeAnswer, headword, hint, makeCloze, phraseKind, maxHints, phraseWords } from './answer.ts';
 
 test('new words are flashcards, then exercises go from picking to typing', () => {
   assert.equal(exerciseFor(0, true), 'flashcard');
@@ -89,4 +89,43 @@ test('a cloze reveal lists the dictionary form only when it differs', () => {
 test('a cloze only blanks a whole word, never the middle of one', () => {
   assert.equal(makeCloze('un art', 'Il doit partir, car il aime l’art.')?.sentence, 'Il doit partir, car il aime l’____.');
   assert.equal(makeCloze('un art', 'Il doit partir.'), null);
+});
+
+test('the "…" and other punctuation in a phrase do not have to be typed', () => {
+  const fr = 'd’une part… d’autre part';
+  assert.equal(gradeAnswer("d'une part d'autre part", fr), 'correct');
+  assert.equal(gradeAnswer('d’une part d’autre part', fr), 'correct');
+  assert.equal(gradeAnswer("d'une part... d'autre part", fr), 'correct');
+  assert.equal(gradeAnswer("D'une part, d'autre part.", fr), 'correct');
+  assert.equal(gradeAnswer("d'une part…d'autre part", fr), 'correct');
+  assert.equal(gradeAnswer("d' une part d' autre part", fr), 'correct');
+  assert.equal(gradeAnswer('non seulement mais aussi', 'non seulement… mais aussi'), 'correct');
+  assert.equal(gradeAnswer("d'un cote de l'autre", 'd’un côté… de l’autre'), 'accents');
+  assert.equal(gradeAnswer("d'une part", fr), 'wrong');
+  assert.equal(gradeAnswer('…', fr), 'wrong');
+  assert.equal(gradeAnswer("d'une part – d'autre part", fr), 'correct');
+  assert.equal(gradeAnswer('d’une part — d’autre part', fr), 'correct');
+  assert.equal(gradeAnswer("d'une part - d'autre part", fr), 'correct');
+  // Hyphens inside a word and apostrophes still count.
+  assert.equal(gradeAnswer('rendez vous', 'un rendez-vous'), 'wrong');
+});
+
+test('hints keep the "…" visible and are limited by the longest word', () => {
+  assert.equal(hint('d’une part… d’autre part', 1), 'd’u__ p___… d’a____ p___');
+  assert.equal(maxHints('d’une part… d’autre part'), 4);
+  assert.equal(maxHints('un logement'), 7);
+});
+
+test('long phrases are built from tiles instead of typed from their meaning', () => {
+  assert.equal(phraseKind('d’une part… d’autre part'), 'split');
+  assert.equal(phraseKind('il est indispensable que (+ subj.)'), 'long');
+  assert.equal(phraseKind('à cause de'), false);
+  assert.equal(phraseKind('le réchauffement climatique'), false);
+  assert.equal(phraseKind('un citoyen / une citoyenne'), false);
+  assert.deepEqual(phraseWords('d’une part… d’autre part'), ["d'une", 'part', "d'autre", 'part']);
+  assert.deepEqual([1, 2, 3, 4].map((r) => exerciseFor(r, false, false, 'long')), ['choice', 'dictation', 'build', 'choice']);
+  // A phrase in two parts is never typed, not even when heard.
+  assert.deepEqual([1, 2, 3, 4].map((r) => exerciseFor(r, false, false, 'split')), ['choice', 'build', 'build', 'choice']);
+  assert.equal(exerciseFor(4, true, false, 'long'), 'build');
+  assert.equal(exerciseFor(3, false, false, false), 'meaning');
 });

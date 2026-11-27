@@ -2,27 +2,40 @@
 
 // choice: pick the French word for the English among look-alikes. clozeChoice: pick the word that fills
 // the blank in a sentence. Both are recognition (easier); dictation, meaning and cloze are typed recall.
-export type ExerciseKind = 'flashcard' | 'choice' | 'clozeChoice' | 'dictation' | 'meaning' | 'cloze';
+// build: put a phrase's words back in order from tiles, used instead of `meaning` for long phrases.
+export type ExerciseKind = 'flashcard' | 'choice' | 'clozeChoice' | 'dictation' | 'meaning' | 'cloze' | 'build';
 
 // New words start as flashcards. Then each round goes from recognising the word to producing it:
 // pick it, pick it in a sentence, then type it from sound, from meaning and in a sentence.
 // A word just forgotten (`relearning`) gets a recognition question first, against words it is easy
 // to confuse with, before it has to be typed again.
-export function exerciseFor(reps: number, hasCloze: boolean, relearning = false): ExerciseKind {
+// A long phrase (`phrase`, see phraseKind) is built from word tiles instead of typed from its meaning:
+// typing "d'une part… d'autre part" from the English tests punctuation more than the phrase.
+// A phrase in two parts ('split') is also built from tiles when it is heard, instead of typed.
+export function exerciseFor(reps: number, hasCloze: boolean, relearning = false, phrase: PhraseKind = false): ExerciseKind {
   if (reps === 0) return 'flashcard';
   if (relearning) return hasCloze && reps % 2 === 0 ? 'clozeChoice' : 'choice';
   const cycle: ExerciseKind[] = hasCloze ? ['choice', 'clozeChoice', 'dictation', 'meaning', 'cloze'] : ['choice', 'dictation', 'meaning'];
-  return cycle[(reps - 1) % cycle.length];
+  const kind = cycle[(reps - 1) % cycle.length];
+  if (phrase === 'split' && (kind === 'meaning' || kind === 'dictation')) return 'build';
+  return phrase && kind === 'meaning' ? 'build' : kind;
 }
 
 const ARTICLE = /^(?:(?:une|un|les|le|la|des)\s+|l'\s*)/;
 
+// Punctuation that never changes the answer: the "…" in "d'une part… d'autre part" (typed or as three dots),
+// dashes between the parts, commas, a final full stop, quotes. Apostrophes, hyphens inside a word
+// ("rendez-vous") and "/" are kept because they do matter.
+const PUNCTUATION = /\.{2,}|[…,;:!?.«»"“”–—]|\s-+\s/g;
+
 function normalize(s: string) {
   return s
     .toLowerCase()
-    .replace(/[’`]/g, "'")
+    .replace(/[’`ʼ]/g, "'")
     .replace(/\(.*?\)/g, '')
+    .replace(PUNCTUATION, ' ')
     .replace(/\s+/g, ' ')
+    .replace(/'\s+/g, "'")
     .trim();
 }
 
@@ -78,10 +91,32 @@ export function clozeReveal(fr: string, cloze: { answer: string }): { word: stri
 }
 
 // A hint that reveals the first `letters` letters of each word, e.g. hint("un logement", 1) → "u_ l_______".
-// Spaces, apostrophes and hyphens stay visible so the shape of the answer shows.
+// Spaces, apostrophes, hyphens and punctuation such as "…" stay visible so the shape of the answer shows.
+const HINT_GAP = /([\s'’…,;.-]+)/;
 export function hint(answer: string, letters: number) {
   return answer
-    .split(/([\s'’-]+)/)
-    .map((part) => (/^[\s'’-]+$/.test(part) ? part : part.slice(0, letters) + '_'.repeat(Math.max(0, part.length - letters))))
+    .split(HINT_GAP)
+    .map((part) => (HINT_GAP.test(part) || !part ? part : part.slice(0, letters) + '_'.repeat(Math.max(0, part.length - letters))))
     .join('');
+}
+
+// How many hints a word can take: one fewer than the letters in its longest word.
+export function maxHints(answer: string) {
+  return Math.max(0, ...answer.split(HINT_GAP).map((w) => (HINT_GAP.test(w) ? 0 : w.length))) - 1;
+}
+
+// The words of a phrase as tiles to put in order, from the first form of the entry without grammar notes:
+// "d’une part… d’autre part" → ["d'une", "part", "d'autre", "part"].
+export function phraseWords(fr: string) {
+  return normalize(fr.split('/')[0]).split(' ').filter(Boolean);
+}
+
+// Which phrases are built from tiles: 'split' for two parts split by "…", 'long' for four words or more
+// not counting the article. Shorter ones ("remplir un formulaire") are still typed, and so are pairs
+// like "un citoyen / une citoyenne".
+export type PhraseKind = 'split' | 'long' | false;
+export function phraseKind(fr: string): PhraseKind {
+  if (fr.includes('/')) return false;
+  if (/…|\.{2,}/.test(fr)) return 'split';
+  return headword(fr).split(' ').filter(Boolean).length >= 4 ? 'long' : false;
 }

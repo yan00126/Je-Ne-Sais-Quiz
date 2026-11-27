@@ -26,6 +26,9 @@ const SCENARIOS = [
   { id: 'today', route: '/', expect: [/^(C’est parti !|On continue !|Tout est fait, bravo !|Continuer →|Tout est fait !|Monter : .*|Voir les exercices)$/] },
   { id: 'vocab', route: '/cards', expect: ['Afficher la réponse'] },
   { id: 'vocab-revealed', route: '/cards', steps: [{ text: 'Afficher la réponse', exact: true }], expect: ['Bien', 'Facile'] },
+  // Word-order question on a long phrase: all tiles, and the buttons, on the first screen with half the words placed.
+  { id: 'vocab-build', route: '/cards?exercise=build&card=v2381', steps: [{ label: 'il' }, { label: 'est' }], expect: ['Vérifier', 'Je ne sais pas', { label: 'important' }, { label: 'que' }] },
+  { id: 'vocab-build-answered', route: '/cards?exercise=build&card=v087', steps: [{ label: 'd’une' }, { label: 'part' }, { label: 'd’autre' }, { label: 'part' }, { text: 'Vérifier', exact: true, wait: 900 }], expect: ['Continuer'] },
   { id: 'listening-answered', route: '/practice/listening', steps: [{ text: 'Documents', exact: true }, { text: 'A', exact: true, wait: 1200 }], expect: [/^(Question suivante|Voir le résultat)$/] },
   { id: 'reading-result', route: '/practice/reading', steps: [{ text: 'A', exact: true, wait: 1000 }, { text: 'Question suivante', exact: true }, { text: 'A', exact: true, wait: 1000 }, { text: 'Voir le résultat', exact: true, wait: 1200 }], expect: [/^Résultat : /, 'Document suivant'] },
   { id: 'reading-answered', route: '/practice/reading', steps: [{ text: 'A', exact: true, wait: 1200 }], expect: [/^(Question suivante|Voir le résultat)$/] },
