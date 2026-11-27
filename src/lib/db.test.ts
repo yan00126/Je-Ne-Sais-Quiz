@@ -23,7 +23,7 @@ test('weekly new words use local midnight six calendar days ago across DST', asy
         exports, Date: Clock,
         require: (name: string) => {
           if (name === '../data/vocab') return { STARTER_VOCAB: [] };
-          if (name === './srs' || name === './level') return {};
+          if (name === './srs' || name === './level' || name === './answer') return {};
           if (name === './stats') return stats;
           throw new Error(`Unexpected import: ${name}`);
         },

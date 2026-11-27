@@ -1,6 +1,7 @@
 import type { SQLiteDatabase } from 'expo-sqlite';
 import { STARTER_VOCAB, type VocabItem } from '../data/vocab';
 import { newCardRow, type CardRow } from './srs';
+import { answerHistory, type Answer, type History } from './answer';
 import { currentLevel, type Attempt, type Level, type LevelState } from './level';
 import { dayKey, newWordsCutoff, wordTiers, type Session, type WordTiers } from './stats';
 import type { NumberAnswer } from './numberDrill';
@@ -14,7 +15,8 @@ export type Skill = 'vocab' | 'listening' | 'reading' | 'writing' | 'speaking';
 export type StepId = Skill | 'shadowing';
 export const SHADOWING_PREFIX = 'sh-';
 
-export type ReviewCard = CardRow & Pick<VocabItem, 'fr' | 'en' | 'example'>;
+// `streak` and `missed` come from the word's past answers and decide which exercise it gets (see exerciseFor).
+export type ReviewCard = CardRow & Pick<VocabItem, 'fr' | 'en' | 'example'> & History;
 
 // Runs on app start via SQLiteProvider's onInit. Bump user_version when adding a migration.
 export async function migrate(db: SQLiteDatabase) {
@@ -135,6 +137,13 @@ export async function migrate(db: SQLiteDatabase) {
       PRAGMA user_version = 6;
     `);
   }
+  if (user_version < 7) {
+    // Which exercise a word gets is worked out from its past answers (see answerHistory).
+    await db.execAsync(`
+      CREATE INDEX IF NOT EXISTS attempts_item ON attempts (skill, item_id);
+      PRAGMA user_version = 7;
+    `);
+  }
   await seedCards(db);
 }
 
@@ -173,9 +182,23 @@ export function newCardOrder(id: string) {
 async function withVocab(db: SQLiteDatabase, rows: CardRow[]): Promise<ReviewCard[]> {
   const custom = await db.getAllAsync<VocabItem>('SELECT * FROM custom_vocab');
   const byId = new Map([...VOCAB_BY_ID, ...custom.map((v) => [v.id, v] as const)]);
+  // Past answers of the words in the queue only (new words have none), read through the attempts index.
+  const scores = new Map<string, Answer[]>();
+  const seenIds = rows.filter((r) => r.reps > 0).map((r) => r.id);
+  if (seenIds.length) {
+    const answers = await db.getAllAsync<Answer & { item_id: string }>(
+      `SELECT item_id, score, total FROM attempts WHERE skill = 'vocab' AND item_id IN (${seenIds.map(() => '?').join(',')}) ORDER BY created_at, id`,
+      ...seenIds,
+    );
+    for (const a of answers) {
+      const list = scores.get(a.item_id);
+      if (list) list.push(a);
+      else scores.set(a.item_id, [a]);
+    }
+  }
   return rows.flatMap((r) => {
     const v = byId.get(r.id);
-    return v ? [{ ...r, fr: v.fr, en: v.en, example: v.example }] : [];
+    return v ? [{ ...r, fr: v.fr, en: v.en, example: v.example, ...answerHistory(scores.get(r.id) ?? []) }] : [];
   });
 }
 
@@ -222,6 +245,12 @@ export async function getStudyQueue(db: SQLiteDatabase): Promise<ReviewCard[]> {
     .sort((a, b) => newCardOrder(a.id) - newCardOrder(b.id) || a.id.localeCompare(b.id))
     .slice(0, await newCardsLeftToday(db));
   return withVocab(db, [...due, ...fresh]);
+}
+
+// Words already met, for the other pairs of a matching question.
+export async function getSeenWordIds(db: SQLiteDatabase): Promise<Set<string>> {
+  const rows = await db.getAllAsync<{ id: string }>('SELECT id FROM cards WHERE reps > 0');
+  return new Set(rows.map((r) => r.id));
 }
 
 export async function saveReview(db: SQLiteDatabase, row: CardRow, wasNew: boolean) {

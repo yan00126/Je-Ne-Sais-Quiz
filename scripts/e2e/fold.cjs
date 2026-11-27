@@ -22,10 +22,19 @@ const SIZES = [
 
 // steps: { text | re | label, exact?, wait? } to tap (label = accessibility label), { fill } to type in the first text field.
 // expect: what must be fully visible: buttons by text (string = exact, RegExp) or { label }, fields by { placeholder }.
+// The eight tiles of the matching question for the first new word (fixed by its seed, with no word met yet).
+const MATCH_V001 = ['un logiciel', 'un vêtement', 'un logement', 'un paiement', 'software', 'housing, accommodation', 'a piece of clothing', 'a payment'].map((label) => ({ label }));
 const SCENARIOS = [
   { id: 'today', route: '/', expect: [/^(C’est parti !|On continue !|Tout est fait, bravo !|Continuer →|Tout est fait !|Monter : .*|Voir les exercices)$/] },
-  { id: 'vocab', route: '/cards', expect: ['Afficher la réponse'] },
-  { id: 'vocab-revealed', route: '/cards', steps: [{ text: 'Afficher la réponse', exact: true }], expect: ['Bien', 'Facile'] },
+  // A new word comes first as a multiple-choice question: all four options and the button on the first screen.
+  { id: 'vocab', route: '/cards', expect: ['Je ne sais pas', { label: 'un logement' }, { label: 'un logiciel' }, { label: 'un paiement' }, { label: 'un vêtement' }] },
+  { id: 'vocab-answered', route: '/cards', steps: [{ label: 'un paiement', wait: 900 }], expect: ['Continuer'] },
+  // Fill-in-the-blank choice on the longest example sentence in the deck.
+  { id: 'vocab-cloze', route: '/cards?exercise=clozeChoice&card=v1474', expect: ['Je ne sais pas', 'handicap', 'anxiété', 'article', 'candidat'] },
+  // Matching: all eight tiles and the button, then the result once every pair is found.
+  { id: 'vocab-match', route: '/cards?exercise=match&card=v001', steps: [{ label: 'un logement' }], expect: ['Je ne sais pas', ...MATCH_V001] },
+  { id: 'vocab-match-all', route: '/cards?exercise=match&card=v001', steps: [['un logiciel', 'software'], ['un vêtement', 'a piece of clothing'], ['un paiement', 'a payment'], ['un logement', 'housing, accommodation']].flat().map((label) => ({ label })), expect: ['Continuer'] },
+  { id: 'vocab-match-done', route: '/cards?exercise=match&card=v001', steps: [{ text: 'Je ne sais pas', exact: true, wait: 900 }], expect: ['Continuer'] },
   // Word-order question on a long phrase: all tiles, and the buttons, on the first screen with half the words placed.
   { id: 'vocab-build', route: '/cards?exercise=build&card=v2381', steps: [{ label: 'il' }, { label: 'est' }], expect: ['Vérifier', 'Je ne sais pas', { label: 'important' }, { label: 'que' }] },
   { id: 'vocab-build-answered', route: '/cards?exercise=build&card=v087', steps: [{ label: 'd’une' }, { label: 'part' }, { label: 'd’autre' }, { label: 'part' }, { text: 'Vérifier', exact: true, wait: 900 }], expect: ['Continuer'] },

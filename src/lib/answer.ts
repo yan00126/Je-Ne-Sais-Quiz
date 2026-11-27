@@ -1,22 +1,46 @@
 // Typed vocabulary exercises: which exercise to show for a card, and how to grade what was typed.
 
 // choice: pick the French word for the English among look-alikes. clozeChoice: pick the word that fills
-// the blank in a sentence. Both are recognition (easier); dictation, meaning and cloze are typed recall.
+// the blank in a sentence. match: pair four French words with their meanings. All three are recognition
+// (easier); dictation, meaning and cloze are typed recall.
 // build: put a phrase's words back in order from tiles, used instead of `meaning` for long phrases.
-export type ExerciseKind = 'flashcard' | 'choice' | 'clozeChoice' | 'dictation' | 'meaning' | 'cloze' | 'build';
+export type ExerciseKind = 'choice' | 'clozeChoice' | 'match' | 'dictation' | 'meaning' | 'cloze' | 'build';
 
-// New words start as flashcards. Then each round goes from recognising the word to producing it:
-// pick it, pick it in a sentence, then type it from sound, from meaning and in a sentence.
-// A word just forgotten (`relearning`) gets a recognition question first, against words it is easy
-// to confuse with, before it has to be typed again.
+// What the learner has done with a word so far: how many answers in a row were right (0 for a new word
+// or just after a wrong answer) and whether it was ever answered wrong. See answerHistory.
+export type History = { streak: number; missed: boolean };
+
+// From a word's answers in order. score 0 is wrong (or "Je ne sais pas") and starts the streak over;
+// a full score adds one; a part score (right, but only by elimination in a matching question) leaves
+// the streak where it was.
+export type Answer = { score: number; total: number };
+export function answerHistory(answers: readonly Answer[]): History {
+  let streak = 0;
+  for (const a of answers) {
+    if (a.score <= 0) streak = 0;
+    else if (a.score >= a.total) streak++;
+  }
+  return { streak, missed: answers.some((a) => a.score <= 0) };
+}
+
+// A word is recognised before it has to be typed. A new word starts with a multiple-choice question,
+// then matching, then picking it in a sentence. A word answered wrong (also "Je ne sais pas") starts
+// over and takes one more matching round: it needs four right recognition answers in a row before it
+// is typed again. After that each round mixes typing it from sound, from meaning and in a sentence,
+// with a matching round now and then.
 // A long phrase (`phrase`, see phraseKind) is built from word tiles instead of typed from its meaning:
 // typing "d'une part… d'autre part" from the English tests punctuation more than the phrase.
 // A phrase in two parts ('split') is also built from tiles when it is heard, instead of typed.
-export function exerciseFor(reps: number, hasCloze: boolean, relearning = false, phrase: PhraseKind = false): ExerciseKind {
-  if (reps === 0) return 'flashcard';
-  if (relearning) return hasCloze && reps % 2 === 0 ? 'clozeChoice' : 'choice';
-  const cycle: ExerciseKind[] = hasCloze ? ['choice', 'clozeChoice', 'dictation', 'meaning', 'cloze'] : ['choice', 'dictation', 'meaning'];
-  const kind = cycle[(reps - 1) % cycle.length];
+export function recognitionSteps(hasCloze: boolean, missed: boolean): ExerciseKind[] {
+  const third: ExerciseKind = hasCloze ? 'clozeChoice' : 'choice';
+  return missed ? ['choice', 'match', third, 'match'] : ['choice', 'match', third];
+}
+
+export function exerciseFor({ streak, missed }: History, hasCloze: boolean, phrase: PhraseKind = false): ExerciseKind {
+  const first = recognitionSteps(hasCloze, missed);
+  if (streak < first.length) return first[streak];
+  const cycle: ExerciseKind[] = hasCloze ? ['dictation', 'meaning', 'cloze', 'match'] : ['dictation', 'meaning', 'match'];
+  const kind = cycle[(streak - first.length) % cycle.length];
   if (phrase === 'split' && (kind === 'meaning' || kind === 'dictation')) return 'build';
   return phrase && kind === 'meaning' ? 'build' : kind;
 }
