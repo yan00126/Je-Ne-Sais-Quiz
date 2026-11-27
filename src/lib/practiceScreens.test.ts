@@ -5,6 +5,7 @@ import { runInNewContext } from 'node:vm';
 import ts from 'typescript';
 import { WRITING_TASKS } from '../data/prompts.ts';
 import * as answer from './answer.ts';
+import * as wordMistakes from './wordMistakes.ts';
 import * as queue from './cardQueue.ts';
 import * as plan from './plan.ts';
 import * as srs from './srs.ts';
@@ -62,6 +63,7 @@ function screen(path: string, database: Record<string, Function> = {}) {
         case '../../lib/activity': return { markActive() {} };
         case '../../lib/audio': return { play() {} };
         case '../../lib/answer': return answer;
+        case '../../lib/wordMistakes': return wordMistakes;
         case '../../lib/cardQueue': return queue;
         case '../../lib/plan': return plan;
         case '../../lib/srs': return srs;

@@ -54,6 +54,7 @@ function Screens() {
       <Stack.Screen name="practice/shadowing" options={{ title: 'Répéter après le modèle' }} />
       <Stack.Screen name="practice/dialogue" options={{ title: 'Dialogue guidé' }} />
       <Stack.Screen name="mistakes" options={{ title: 'Mes erreurs' }} />
+      <Stack.Screen name="grammar" options={{ title: 'Règles de grammaire' }} />
       <Stack.Screen name="recordings" options={{ title: 'Mes enregistrements' }} />
       <Stack.Screen name="voice" options={{ title: 'Voix française' }} />
       <Stack.Screen name="style" options={{ title: 'Style' }} />

@@ -45,6 +45,7 @@ function links(mistakes: number, themeName: string): { main: Link[]; settings: L
         href: '/mistakes',
         badge: mistakes,
       },
+      { title: 'Règles de grammaire', detail: 'Les règles clés du TCF, avec exemples', icon: 'library-outline', href: '/grammar' },
       { title: 'Mes enregistrements', detail: 'Réécoutez et comparez vos réponses orales', icon: 'mic-circle-outline', href: '/recordings' },
     ],
     settings: [

@@ -49,6 +49,13 @@ const SCENARIOS = [
   { id: 'shadowing-setup', route: '/practice/shadowing', steps: [{ text: 'Par niveau', exact: true }], expect: [/^Commencer · /] },
   { id: 'shadowing-options', route: '/practice/shadowing', steps: [{ text: 'Par niveau', exact: true }, { label: 'Options de la série', wait: 900 }], expect: ['Longue', 'Masqué', 'OK'] },
   { id: 'dialogue-hints', route: '/practice/dialogue', steps: [{ re: 'Indice$' }, { re: 'Indice$' }], expect: ['● Répondre', /Indice$/] },
+  // Weak points and the way to the grammar cards on the first screen of « Mes erreurs ».
+  { id: 'mistakes', route: '/mistakes', expect: ['Ajouter aux cartes', 'Mes points faibles', 'Règles de grammaire'] },
+  { id: 'mistakes-keyboard', route: '/mistakes', keyboard: true, steps: [{ fill: 'un loyer' }], expect: [{ placeholder: 'Sens (anglais ou chinois)' }, 'Ajouter aux cartes'] },
+  { id: 'grammar', route: '/grammar', expect: [{ placeholder: 'Chercher : subjonctif, dont, depuis…' }, 'Le genre des noms'] },
+  { id: 'grammar-search-keyboard', route: '/grammar', keyboard: true, steps: [{ fill: 'subjonctif' }], expect: [{ placeholder: 'Chercher : subjonctif, dont, depuis…' }, 'Quand utiliser le subjonctif'] },
+  // A rule card opens in a bottom sheet: its close button and its pitfall show without a scroll.
+  { id: 'grammar-rule', route: '/grammar', steps: [{ text: 'Les phrases avec « si »', exact: true, wait: 900 }], expect: [{ label: 'Fermer' }, 'Erreur fréquente'] },
   { id: 'progress', route: '/progress', expect: [{ label: 'Réglages' }, /^(01 )?Mes erreurs/] },
   { id: 'progress-settings', route: '/progress', steps: [{ label: 'Réglages', wait: 900 }], expect: ['Style de l’appli', 'Voix française'] },
 ];
