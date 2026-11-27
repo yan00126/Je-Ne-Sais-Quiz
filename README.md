@@ -8,8 +8,10 @@ Every day it gives you a short plan that covers the four tested skills equally:
 - **Expression écrite**: the three TCF writing tasks, with timer and word counter
 - **Expression orale**: the three TCF speaking tasks, recorded with the exam time limits
 
-Vocabulary is reviewed with spaced repetition (FSRS). New words start as flashcards; known words come back as
-typed exercises (dictation, meaning → French, fill in the blank) that are graded automatically.
+Vocabulary is reviewed with spaced repetition (FSRS). A new word is first met as a multiple-choice question, then
+in matching (four words with their meanings) and a fill-in-the-blank choice; after that it comes back as typed
+exercises (dictation, meaning → French, fill in the blank), all graded automatically. A wrong answer sends the
+word back to four recognition questions in a row before it is typed again.
 Wrong answers in listening and reading go to a mistake log with explanations. Everything is stored on the phone.
 
 A step of the daily plan (about an hour) only counts as done after real work: all vocabulary cards reviewed,

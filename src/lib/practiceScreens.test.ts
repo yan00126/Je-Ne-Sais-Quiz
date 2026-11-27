@@ -21,7 +21,7 @@ function screen(path: string, database: Record<string, Function> = {}) {
   const db = {
     pickNextItem: async (_db: object, _skill: string, items: unknown[]) => items[0],
     saveWriting: async () => {}, saveReview: async () => {}, logAttempt: async () => {},
-    getStudyQueue: async () => [], ...database,
+    getStudyQueue: async () => [], getSeenWordIds: async () => new Set(), ...database,
   };
   const stateHook = (initial: any) => {
     const i = cursor++;
@@ -56,6 +56,7 @@ function screen(path: string, database: Record<string, Function> = {}) {
         case '../../data/vocab': return { STARTER_VOCAB: [], TOPICS: {} };
         case '../../lib/distractors': return { choiceOptions: () => [], makePool: () => ({}) };
         case '../../lib/wordOrder': return { buildTiles: () => [], checkOrder: () => false };
+        case '../../lib/matching': return { matchItems: () => ({ left: [], right: [] }) };
         case '../../lib/db': return db;
         case '../../lib/useStudyTimer': return { useStudyTimer() {} };
         case '../../lib/activity': return { markActive() {} };
@@ -99,7 +100,7 @@ function screen(path: string, database: Record<string, Function> = {}) {
 
 const cardsPath = '../app/(tabs)/cards.tsx';
 const writingPath = '../app/practice/writing.tsx';
-const card = { ...srs.newCardRow('test', new Date(0)), fr: 'un logement', en: 'housing', example: 'Un logement.' };
+const card = { ...srs.newCardRow('test', new Date(0)), fr: 'un logement', en: 'housing', example: 'Un logement.', streak: 0, missed: false };
 const grading = (s: ReturnType<typeof screen>) => {
   const exercise = s.elements().find((e) => e.props.onGrade);
   assert.ok(exercise);

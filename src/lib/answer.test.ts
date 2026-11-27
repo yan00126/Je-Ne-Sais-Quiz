@@ -1,18 +1,35 @@
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
-import { clozeReveal, exerciseFor, gradeAnswer, headword, hint, makeCloze, phraseKind, maxHints, phraseWords } from './answer.ts';
+import { answerHistory, clozeReveal, exerciseFor, gradeAnswer, headword, hint, makeCloze, phraseKind, maxHints, phraseWords } from './answer.ts';
 
-test('new words are flashcards, then exercises go from picking to typing', () => {
-  assert.equal(exerciseFor(0, true), 'flashcard');
-  assert.deepEqual([1, 2, 3, 4, 5, 6].map((r) => exerciseFor(r, true)), ['choice', 'clozeChoice', 'dictation', 'meaning', 'cloze', 'choice']);
-  assert.deepEqual([1, 2, 3, 4].map((r) => exerciseFor(r, false)), ['choice', 'dictation', 'meaning', 'choice']);
+const h = (streak: number, missed = false) => ({ streak, missed });
+
+test('new words start as a multiple-choice question, then go from picking to typing', () => {
+  assert.equal(exerciseFor(h(0), true), 'choice');
+  assert.deepEqual([0, 1, 2, 3, 4, 5, 6, 7].map((s) => exerciseFor(h(s), true)), ['choice', 'match', 'clozeChoice', 'dictation', 'meaning', 'cloze', 'match', 'dictation']);
+  assert.deepEqual([0, 1, 2, 3, 4, 5, 6].map((s) => exerciseFor(h(s), false)), ['choice', 'match', 'choice', 'dictation', 'meaning', 'match', 'dictation']);
 });
 
-test('a forgotten word comes back as a multiple-choice question', () => {
-  assert.equal(exerciseFor(4, true, true), 'clozeChoice');
-  assert.equal(exerciseFor(5, true, true), 'choice');
-  assert.equal(exerciseFor(4, false, true), 'choice');
-  assert.equal(exerciseFor(0, true, true), 'flashcard');
+test('after a wrong answer a word gets four recognition questions before it is typed again', () => {
+  assert.deepEqual([0, 1, 2, 3, 4].map((s) => exerciseFor(h(s, true), true)), ['choice', 'match', 'clozeChoice', 'match', 'dictation']);
+  assert.deepEqual([0, 1, 2, 3, 4].map((s) => exerciseFor(h(s, true), false)), ['choice', 'match', 'choice', 'match', 'dictation']);
+});
+
+test('answer history: right answers in a row since the last wrong one', () => {
+  const a = (...scores: number[]) => scores.map((score) => ({ score, total: 1 }));
+  assert.deepEqual(answerHistory([]), { streak: 0, missed: false });
+  assert.deepEqual(answerHistory(a(1, 1)), { streak: 2, missed: false });
+  assert.deepEqual(answerHistory(a(1, 0, 1)), { streak: 1, missed: true });
+  assert.deepEqual(answerHistory(a(1, 1, 0)), { streak: 0, missed: true });
+  // Matched by elimination (a part score): right, but the word stays at the same step.
+  assert.deepEqual(answerHistory([...a(0, 1), { score: 1, total: 2 }]), { streak: 1, missed: true });
+});
+
+test('phrases are never built from tiles or typed while they are still being recognised', () => {
+  for (const phrase of ['long', 'split'] as const) {
+    assert.deepEqual([0, 1, 2].map((s) => exerciseFor(h(s), true, phrase)), ['choice', 'match', 'clozeChoice']);
+    assert.deepEqual([0, 1, 2, 3].map((s) => exerciseFor(h(s, true), false, phrase)), ['choice', 'match', 'choice', 'match']);
+  }
 });
 
 test('answers are accepted with or without the article', () => {
@@ -123,9 +140,9 @@ test('long phrases are built from tiles instead of typed from their meaning', ()
   assert.equal(phraseKind('le réchauffement climatique'), false);
   assert.equal(phraseKind('un citoyen / une citoyenne'), false);
   assert.deepEqual(phraseWords('d’une part… d’autre part'), ["d'une", 'part', "d'autre", 'part']);
-  assert.deepEqual([1, 2, 3, 4].map((r) => exerciseFor(r, false, false, 'long')), ['choice', 'dictation', 'build', 'choice']);
+  assert.deepEqual([3, 4, 5].map((s) => exerciseFor(h(s), false, 'long')), ['dictation', 'build', 'match']);
   // A phrase in two parts is never typed, not even when heard.
-  assert.deepEqual([1, 2, 3, 4].map((r) => exerciseFor(r, false, false, 'split')), ['choice', 'build', 'build', 'choice']);
-  assert.equal(exerciseFor(4, true, false, 'long'), 'build');
-  assert.equal(exerciseFor(3, false, false, false), 'meaning');
+  assert.deepEqual([3, 4, 5].map((s) => exerciseFor(h(s), false, 'split')), ['build', 'build', 'match']);
+  assert.equal(exerciseFor(h(4), true, 'long'), 'build');
+  assert.equal(exerciseFor(h(4), false, false), 'meaning');
 });
