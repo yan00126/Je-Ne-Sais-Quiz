@@ -44,8 +44,8 @@ function screen(path: string, database: Record<string, Function> = {}) {
       switch (name) {
         case 'react/jsx-runtime': return { jsx, jsxs: jsx, Fragment: 'Fragment' };
         case 'react': return { useState: stateHook, useEffect: effectHook, useRef: (initial: any) => stateHook(() => ({ current: initial }))[0], useCallback: (fn: Function) => fn, useMemo: (fn: Function) => fn() };
-        case 'react-native': return { View: 'View', Text: 'Text', TextInput: 'TextInput', Pressable: 'Pressable' };
-        case 'expo-router': return { useFocusEffect: (effect: () => void) => effectHook(effect, []) };
+        case 'react-native': return { View: 'View', Text: 'Text', TextInput: 'TextInput', Pressable: 'Pressable', Platform: { OS: 'ios' } };
+        case 'expo-router': return { useFocusEffect: (effect: () => void) => effectHook(effect, []), useLocalSearchParams: () => ({}) };
         case 'expo-sqlite': return { useSQLiteContext: () => db };
         case '@expo/vector-icons/Ionicons': return { default: 'Ionicons' };
         case '../../components/ui': return { Screen: 'Screen', Body: 'Body', Button: 'Button', Card: 'Card', H1: 'H1', H2: 'H2', Footer: 'Footer', Sheet: 'Sheet' };
@@ -55,6 +55,7 @@ function screen(path: string, database: Record<string, Function> = {}) {
         case '../../data/recordings': return { REAL_EXAMPLES: {}, WORD_AUDIO: {} };
         case '../../data/vocab': return { STARTER_VOCAB: [], TOPICS: {} };
         case '../../lib/distractors': return { choiceOptions: () => [], makePool: () => ({}) };
+        case '../../lib/wordOrder': return { buildTiles: () => [], checkOrder: () => false };
         case '../../lib/db': return db;
         case '../../lib/useStudyTimer': return { useStudyTimer() {} };
         case '../../lib/activity': return { markActive() {} };
