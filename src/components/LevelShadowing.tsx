@@ -15,8 +15,10 @@ import {
   TEXT_MODES,
   TEXT_ORDER,
   createPlayer,
+  isGap,
   isLevel,
   isPause,
+  isPlay,
   isTextMode,
   markSeen,
   pickSentences,
@@ -66,15 +68,15 @@ function loadSeen(): SeenHistory {
   }
 }
 
-const IDLE: PlayerState = { index: 0, phase: 'slow', status: 'paused', gap: null, completed: 0 };
+const IDLE: PlayerState = { index: 0, phase: 'first', status: 'paused', gap: null, completed: 0 };
 
 // The badge colour of each level, from easy (green) to hard (red).
 function levelColor(t: Theme, level: ShadowLevel) {
   return { A1: t.colors.green, A2: t.colors.accent, B1: t.colors.amber, B2: t.colors.red }[level];
 }
 
-// Shadowing by level: choose a level, then each sentence plays slow, you repeat, it plays at the
-// level's normal speed, you repeat, and the next one starts by itself.
+// Shadowing by level: choose a level, then each sentence plays at the level's normal speed, slow,
+// and at normal speed again, with a pause after each for you to repeat; the next one starts by itself.
 export function LevelShadowing({ header }: { header?: ReactNode }) {
   const db = useSQLiteContext();
   const [level, setLevel] = useState<ShadowLevel>(() => load(KEYS.level, isLevel, 'A2'));
@@ -136,7 +138,7 @@ export function LevelShadowing({ header }: { header?: ReactNode }) {
           }
           setPs(s);
           reached.current = Math.max(reached.current, s.index);
-          if (s.phase !== 'slow') setHeard((prev) => (prev.has(s.index) ? prev : new Set(prev).add(s.index)));
+          if (s.phase !== 'first') setHeard((prev) => (prev.has(s.index) ? prev : new Set(prev).add(s.index)));
         },
         onGapStart: () => tap(),
         onFinish: (completed) => {
@@ -291,7 +293,7 @@ function LevelOption({ level, selected, onPress }: { level: ShadowLevel; selecte
         <View style={s.metaRow}>
           <SpeedMeter bars={speedBars(level)} />
           <Text style={s.optMeta}>
-            lent {rateLabel(spec.slowRate)} · normal {rateLabel(spec.normalRate)}
+            normal {rateLabel(spec.normalRate)} · lent {rateLabel(spec.slowRate)}
           </Text>
         </View>
       </View>
@@ -339,29 +341,32 @@ function Segmented<T extends string>({ options, value, onChange }: { options: { 
   );
 }
 
-// ——— The four steps of a sentence, as stations on a line ———
+// ——— The six steps of a sentence, as stations on a line ———
 
 const STEPS: { phase: Phase; icon: IconName; label: string }[] = [
+  { phase: 'first', icon: 'volume-high', label: 'Normal' },
+  { phase: 'gapFirst', icon: 'mic', label: 'À vous' },
   { phase: 'slow', icon: 'volume-low', label: 'Lent' },
   { phase: 'gapSlow', icon: 'mic', label: 'À vous' },
-  { phase: 'normal', icon: 'volume-high', label: 'Normal' },
-  { phase: 'gapNormal', icon: 'mic', label: 'À vous' },
+  { phase: 'last', icon: 'volume-high', label: 'Normal' },
+  { phase: 'gapLast', icon: 'mic', label: 'À vous' },
 ];
+const STEP_PCT = 100 / STEPS.length;
 
 function PhaseTrack({ level, phase }: { level: ShadowLevel; phase?: Phase }) {
   const t = useTheme();
   const s = useStyles();
   const spec = LEVEL_SPECS[level];
   const active = phase ? STEPS.findIndex((x) => x.phase === phase) : -1;
-  const sub = (p: Phase) => (p === 'slow' ? rateLabel(spec.slowRate) : p === 'normal' ? rateLabel(spec.normalRate) : 'pause');
+  const sub = (p: Phase) => (p === 'slow' ? rateLabel(spec.slowRate) : isPlay(p) ? rateLabel(spec.normalRate) : 'pause');
   return (
     <View style={s.track}>
       <View style={s.trackLine} />
-      {active > 0 && <View style={[s.trackLine, s.trackLineOn, { right: `${12.5 + (3 - active) * 25}%` }]} />}
+      {active > 0 && <View style={[s.trackLine, s.trackLineOn, { right: `${STEP_PCT / 2 + (STEPS.length - 1 - active) * STEP_PCT}%` }]} />}
       {STEPS.map((step, i) => {
         const done = i < active;
         const on = i === active;
-        const turn = step.phase === 'gapSlow' || step.phase === 'gapNormal';
+        const turn = isGap(step.phase);
         const fill = on ? (turn ? t.skills.speaking.color : t.colors.accent) : done ? t.colors.accent : t.colors.card;
         const fg = on || done ? (t.button === 'brutal' ? t.colors.ink : t.colors.onColor) : t.colors.muted;
         return (
@@ -379,6 +384,13 @@ function PhaseTrack({ level, phase }: { level: ShadowLevel; phase?: Phase }) {
 }
 
 // ——— Playing a series ———
+
+// What to do in each pause.
+const TURN_HINTS: Partial<Record<Phase, string>> = {
+  gapFirst: 'Essayez, même sans être parfait.',
+  gapSlow: 'Lentement, en articulant chaque mot.',
+  gapLast: 'Au rythme normal, à voix haute.',
+};
 
 function Playing(props: {
   sentences: Sentence[];
@@ -398,7 +410,7 @@ function Playing(props: {
   const { state, level } = props;
   const spec = LEVEL_SPECS[level];
   const sentence = props.sentences[state.index];
-  const turn = state.phase === 'gapSlow' || state.phase === 'gapNormal';
+  const turn = isGap(state.phase);
   const playing = state.status === 'playing';
 
   // Redraw the countdown while a pause runs.
@@ -415,10 +427,14 @@ function Playing(props: {
   const message = !playing
     ? { icon: 'pause' as IconName, title: 'En pause', detail: 'Touchez ▶︎ pour reprendre.' }
     : turn
-      ? { icon: 'mic' as IconName, title: 'À vous ! Répétez', detail: state.phase === 'gapSlow' ? 'Lentement, à voix haute.' : 'Au rythme normal, à voix haute.' }
+      ? { icon: 'mic' as IconName, title: 'À vous ! Répétez', detail: TURN_HINTS[state.phase] }
       : state.phase === 'slow'
         ? { icon: 'volume-low' as IconName, title: 'Écoutez · lentement', detail: `Vitesse ${rateLabel(spec.slowRate)}` }
-        : { icon: 'volume-high' as IconName, title: 'Écoutez · vitesse normale', detail: `Vitesse ${rateLabel(spec.normalRate)}` };
+        : {
+            icon: 'volume-high' as IconName,
+            title: state.phase === 'first' ? 'Écoutez · vitesse normale' : 'Réécoutez · vitesse normale',
+            detail: `Vitesse ${rateLabel(spec.normalRate)}`,
+          };
 
   return (
     <Screen>
@@ -428,9 +444,20 @@ function Playing(props: {
             {level} · {spec.name}
           </Text>
         </View>
-        <Text style={s.counter}>
+        <Text style={[s.counter, { flex: 1, textAlign: 'right' }]}>
           Phrase {state.index + 1} / {props.sentences.length}
         </Text>
+        {/* Up here so the round controls below stay on the first screen of an iPhone SE. */}
+        <Pressable
+          accessibilityRole="button"
+          accessibilityLabel="Arrêter la série"
+          onPress={props.onQuit}
+          style={({ pressed }) => [s.quit, pressed && { opacity: 0.6 }]}
+          hitSlop={8}
+        >
+          <Ionicons name="close" size={16} color={t.colors.muted} />
+          <Text style={s.quitText}>Arrêter</Text>
+        </Pressable>
       </View>
       <Segments total={props.sentences.length} index={state.index} />
 
@@ -471,16 +498,15 @@ function Playing(props: {
         )}
       </Card>
 
-      <View style={s.controls}>
-        <RoundButton icon="play-skip-back" label="Précédente" onPress={props.onPrevious} disabled={state.index === 0} />
-        <RoundButton icon="refresh" label="Rejouer" onPress={props.onReplay} />
-        <RoundButton icon={playing ? 'pause' : 'play'} label={playing ? 'Pause' : 'Reprendre'} big onPress={props.onToggle} />
-        <RoundButton icon="play-skip-forward" label="Suivante" onPress={props.onNext} />
-      </View>
-
-      <Pressable accessibilityRole="button" onPress={props.onQuit} style={s.quit} hitSlop={8}>
-        <Text style={s.quitText}>Arrêter la série</Text>
-      </Pressable>
+      {/* Pinned at the bottom so a long sentence with its translation never pushes them off screen. */}
+      <Footer>
+        <View style={s.controls}>
+          <RoundButton icon="play-skip-back" label="Précédente" onPress={props.onPrevious} disabled={state.index === 0} />
+          <RoundButton icon="refresh" label="Rejouer" onPress={props.onReplay} />
+          <RoundButton icon={playing ? 'pause' : 'play'} label={playing ? 'Pause' : 'Reprendre'} big onPress={props.onToggle} />
+          <RoundButton icon="play-skip-forward" label="Suivante" onPress={props.onNext} />
+        </View>
+      </Footer>
     </Screen>
   );
 }
@@ -553,7 +579,7 @@ function Finished(props: { sentences: Sentence[]; level: ShadowLevel; completed:
         </View>
         <H2>{n > 0 ? `Bravo ! ${n} phrase${n > 1 ? 's' : ''} répétée${n > 1 ? 's' : ''}` : 'Série terminée'}</H2>
         <Body muted>
-          Niveau {props.level} · lent {rateLabel(spec.slowRate)} · normal {rateLabel(spec.normalRate)}
+          Niveau {props.level} · normal {rateLabel(spec.normalRate)} · lent {rateLabel(spec.slowRate)}
         </Body>
         <View style={[s.doneNote, props.counted && s.doneNoteOk]}>
           <Ionicons name={props.counted ? 'checkmark-circle' : 'information-circle-outline'} size={18} color={props.counted ? t.colors.greenText : t.colors.muted} />
@@ -686,8 +712,8 @@ const useStyles = makeStyles((t) => {
     trackLine: {
       position: 'absolute',
       top: 18,
-      left: '12.5%',
-      right: '12.5%',
+      left: `${STEP_PCT / 2}%`,
+      right: `${STEP_PCT / 2}%`,
       height: brutal ? 3 : 4,
       marginTop: brutal ? -1.5 : -2,
       borderRadius: 2,
@@ -780,8 +806,8 @@ const useStyles = makeStyles((t) => {
     roundBrutalPressed: { boxShadow: `0px 0px 0px ${ink}`, transform: [{ translateX: 4 }, { translateY: 4 }] },
     roundRaisedPressed: { borderBottomWidth: 2, transform: [{ translateY: 2 }] },
     roundLabel: { fontSize: 12, fontWeight: '700', color: t.colors.muted },
-    quit: { alignSelf: 'center', paddingVertical: 8, paddingHorizontal: 16, marginTop: 4 },
-    quitText: { fontSize: 15, fontWeight: '700', color: t.colors.muted, textDecorationLine: 'underline' },
+    quit: { flexDirection: 'row', alignItems: 'center', gap: 2, paddingVertical: 4, paddingLeft: 4 },
+    quitText: { fontSize: 14, fontWeight: '700', color: t.colors.muted },
 
     doneCard: { alignItems: 'center', gap: 10, paddingVertical: 24 },
     doneIcon: {

@@ -97,7 +97,7 @@ test('speech estimate grows with the text and shrinks with the rate', () => {
 test('pauses follow the pause setting and stay within bounds', () => {
   assert.ok(gapMs(3000, 'short') < gapMs(3000, 'medium'));
   assert.ok(gapMs(3000, 'medium') < gapMs(3000, 'long'));
-  assert.equal(gapMs(3000, 'medium'), 3000 * 1.4 + 800);
+  assert.equal(gapMs(3000, 'medium'), 3000 * 2 + 1500);
   assert.equal(gapMs(100, 'short'), MIN_GAP_MS);
   assert.equal(gapMs(60_000, 'long'), MAX_GAP_MS);
 });
@@ -143,11 +143,13 @@ test('marking sentences seen counts views and keeps the rest', () => {
 });
 
 test('text visibility follows the setting', () => {
-  assert.equal(textVisible('always', 'slow', false), true);
-  assert.equal(textVisible('hidden', 'gapNormal', true), false);
-  assert.equal(textVisible('after', 'slow', false), false);
-  assert.equal(textVisible('after', 'gapSlow', false), true);
-  assert.equal(textVisible('after', 'slow', true), true); // replaying keeps it shown
+  assert.equal(textVisible('always', 'first', false), true);
+  assert.equal(textVisible('hidden', 'gapLast', true), false);
+  assert.equal(textVisible('after', 'first', false), false);
+  assert.equal(textVisible('after', 'gapFirst', false), true);
+  assert.equal(textVisible('after', 'first', true), true); // replaying keeps it shown
+  assert.equal(textVisible('after', 'slow', false), true);
+  assert.equal(textVisible('after', 'last', false), true);
 });
 
 // ——— The player, on a fake clock ———
@@ -212,44 +214,71 @@ function harness(sentences: Sentence[], opts: { level?: 'A1' | 'A2' | 'B1' | 'B2
 
 const three = SHADOW_SENTENCES.filter((s) => s.level === 'B1').slice(0, 3);
 
-test('each sentence plays slow, pauses, plays at normal speed, pauses, then moves on', () => {
+test('each sentence plays normal, slow, then normal again, with a pause after each, then moves on', () => {
+  const { slowRate, normalRate } = LEVEL_SPECS.B1;
   const h = harness(three);
   h.player.start();
-  assert.equal(h.player.state.phase, 'slow');
+  assert.equal(h.player.state.phase, 'first');
   assert.equal(h.player.state.status, 'playing');
-  assert.deepEqual(h.spoken[0], { text: three[0].fr, rate: LEVEL_SPECS.B1.slowRate, at: 0 });
+  assert.deepEqual(h.spoken[0], { text: three[0].fr, rate: normalRate, at: 0 });
 
-  h.advance(2000); // slow play ends after 2 s
-  assert.equal(h.player.state.phase, 'gapSlow');
-  const gap1 = gapMs(2000, 'medium');
+  h.advance(2000); // first play ends after 2 s
+  assert.equal(h.player.state.phase, 'gapFirst');
+  // Before the slow play, the pause is sized on its estimate.
+  const gap1 = gapMs(Math.max(2000, estimateSpeechMs(three[0].fr, slowRate)), 'medium');
   assert.deepEqual(h.player.state.gap, { ms: gap1, endsAt: 2000 + gap1 });
 
   h.advance(gap1 - 1);
-  assert.equal(h.player.state.phase, 'gapSlow', 'still waiting for you to repeat');
+  assert.equal(h.player.state.phase, 'gapFirst', 'still waiting for you to repeat');
   h.advance(1);
-  assert.equal(h.player.state.phase, 'normal');
-  assert.equal(h.spoken[1].rate, LEVEL_SPECS.B1.normalRate);
-  assert.equal(h.spoken[1].text, three[0].fr);
+  assert.equal(h.player.state.phase, 'slow');
+  assert.deepEqual([h.spoken[1].text, h.spoken[1].rate], [three[0].fr, slowRate]);
 
   h.advance(2000);
-  assert.equal(h.player.state.phase, 'gapNormal');
+  assert.equal(h.player.state.phase, 'gapSlow');
+  assert.equal(h.player.state.gap!.ms, gapMs(2000, 'medium'));
+  h.advance(gapMs(2000, 'medium'));
+  assert.equal(h.player.state.phase, 'last');
+  assert.deepEqual([h.spoken[2].text, h.spoken[2].rate], [three[0].fr, normalRate]);
+
+  h.advance(2000);
+  assert.equal(h.player.state.phase, 'gapLast');
+  assert.equal(h.player.state.gap!.ms, gapMs(2000, 'medium'), 'sized on the slow play');
+  assert.equal(h.player.state.completed, 1, 'counts once the last repeat starts');
   h.advance(gapMs(2000, 'medium'));
   assert.equal(h.player.state.index, 1);
-  assert.equal(h.player.state.phase, 'slow');
+  assert.equal(h.player.state.phase, 'first');
   assert.equal(h.player.state.completed, 1);
-  assert.equal(h.spoken[2].text, three[1].fr);
-  assert.deepEqual(h.log.slice(0, 5), [`speak ${LEVEL_SPECS.B1.slowRate}`, 'gap gapSlow', `speak ${LEVEL_SPECS.B1.normalRate}`, 'gap gapNormal', `speak ${LEVEL_SPECS.B1.slowRate}`]);
+  assert.equal(h.spoken[3].text, three[1].fr);
+  assert.deepEqual(h.log.slice(0, 7), [
+    `speak ${normalRate}`, 'gap gapFirst', `speak ${slowRate}`, 'gap gapSlow', `speak ${normalRate}`, 'gap gapLast', `speak ${normalRate}`,
+  ]);
 });
 
-test('the pause is sized on how long the voice really took', () => {
-  const quick = harness(three, { voiceMs: 1500 });
-  quick.player.start();
-  quick.advance(1500);
-  const slow = harness(three, { voiceMs: 6000 });
-  slow.player.start();
-  slow.advance(6000);
-  assert.ok(slow.player.state.gap!.ms > quick.player.state.gap!.ms);
-  assert.equal(slow.player.state.gap!.ms, gapMs(6000, 'medium'));
+test('pauses are long enough to repeat, and longer for longer sentences', () => {
+  const short = SHADOW_SENTENCES.find((s) => s.level === 'A1')!;
+  const long = SHADOW_SENTENCES.filter((s) => s.level === 'B2').sort((a, b) => b.fr.length - a.fr.length)[0];
+  const at = (s: Sentence, level: 'A1' | 'B2') => gapMs(estimateSpeechMs(s.fr, LEVEL_SPECS[level].slowRate), 'medium');
+  assert.ok(at(short, 'A1') >= MIN_GAP_MS);
+  assert.ok(at(long, 'B2') > at(short, 'A1') * 2);
+  // At least twice as long as the slow play, plus time to start.
+  assert.ok(gapMs(5000, 'medium') >= 11_500);
+  assert.ok(gapMs(1000, 'short') >= MIN_GAP_MS);
+  assert.ok(gapMs(60_000, 'long') <= MAX_GAP_MS);
+});
+
+test('the pause is sized on how long the slow play really took', () => {
+  const play = (voiceMs: number) => {
+    const h = harness(three, { voiceMs });
+    h.player.start();
+    h.advance(voiceMs); // first play
+    h.advance(h.player.state.gap!.ms); // its pause
+    h.advance(voiceMs); // slow play
+    assert.equal(h.player.state.phase, 'gapSlow');
+    return h.player.state.gap!.ms;
+  };
+  assert.ok(play(9000) > play(3000));
+  assert.equal(play(9000), gapMs(9000, 'medium'));
 });
 
 test('a longer pause setting gives more time to repeat', () => {
@@ -265,10 +294,10 @@ test('a longer pause setting gives more time to repeat', () => {
 test('the whole series plays by itself to the end', () => {
   const h = harness(three);
   h.player.start();
-  h.advance(5 * 60_000);
+  h.advance(10 * 60_000);
   assert.equal(h.player.state.status, 'finished');
   assert.equal(h.player.state.completed, 3);
-  assert.equal(h.spoken.length, 6);
+  assert.equal(h.spoken.length, 9);
   assert.equal(h.log.at(-1), 'finish 3');
   assert.equal(h.timers.size, 0, 'no timer left running');
 });
@@ -278,8 +307,9 @@ test('levels play at their own speeds', () => {
     const sentences = SHADOW_SENTENCES.filter((s) => s.level === level).slice(0, 1);
     const h = harness(sentences, { level });
     h.player.start();
-    h.advance(60_000);
-    assert.deepEqual(h.spoken.map((s) => s.rate), [LEVEL_SPECS[level].slowRate, LEVEL_SPECS[level].normalRate]);
+    h.advance(120_000);
+    const { slowRate, normalRate } = LEVEL_SPECS[level];
+    assert.deepEqual(h.spoken.map((s) => s.rate), [normalRate, slowRate, normalRate]);
   }
 });
 
@@ -292,14 +322,14 @@ test('pausing during a pause resumes with the time that was left', () => {
   h.player.pause();
   assert.equal(h.player.state.status, 'paused');
   h.advance(60_000); // nothing happens while paused
-  assert.equal(h.player.state.phase, 'gapSlow');
+  assert.equal(h.player.state.phase, 'gapFirst');
   assert.equal(h.spoken.length, 1);
   h.player.resume();
   assert.equal(h.player.state.status, 'playing');
   assert.equal(h.player.state.gap!.endsAt - h.clock, gap - 1000);
-  assert.equal(h.log.filter((l) => l === 'gap gapSlow').length, 1, 'no second « your turn » tap on resume');
+  assert.equal(h.log.filter((l) => l === 'gap gapFirst').length, 1, 'no second « your turn » tap on resume');
   h.advance(gap - 1000);
-  assert.equal(h.player.state.phase, 'normal');
+  assert.equal(h.player.state.phase, 'slow');
 });
 
 test('pausing during a play stops the voice and replays that speed on resume', () => {
@@ -310,20 +340,22 @@ test('pausing during a play stops the voice and replays that speed on resume', (
   assert.ok(h.stops > 0);
   assert.equal(h.player.state.status, 'paused');
   h.advance(10_000);
-  assert.equal(h.player.state.phase, 'slow', 'the stopped play does not end the phase');
+  assert.equal(h.player.state.phase, 'first', 'the stopped play does not end the phase');
   h.player.toggle();
   assert.equal(h.spoken.length, 2);
-  assert.equal(h.spoken[1].rate, LEVEL_SPECS.B1.slowRate);
+  assert.equal(h.spoken[1].rate, LEVEL_SPECS.B1.normalRate);
 });
 
-test('replay starts the sentence over from the slow play; next and previous move between sentences', () => {
+test('replay starts the sentence over from its first play; next and previous move between sentences', () => {
   const h = harness(three);
   h.player.start();
-  h.advance(2000 + gapMs(2000, 'medium') + 500); // in the normal play
-  h.player.replay();
+  h.advance(2000);
+  h.advance(h.player.state.gap!.ms + 500); // in the slow play
   assert.equal(h.player.state.phase, 'slow');
+  h.player.replay();
+  assert.equal(h.player.state.phase, 'first');
   assert.equal(h.player.state.index, 0);
-  assert.equal(h.spoken.at(-1)!.rate, LEVEL_SPECS.B1.slowRate);
+  assert.equal(h.spoken.at(-1)!.rate, LEVEL_SPECS.B1.normalRate);
 
   h.player.next();
   assert.equal(h.player.state.index, 1);
@@ -338,6 +370,56 @@ test('replay starts the sentence over from the slow play; next and previous move
   h.player.next();
   assert.equal(h.player.state.status, 'finished');
   assert.equal(h.log.at(-1), 'finish 0');
+});
+
+test('pausing in the later steps resumes at the right speed or with the time left', () => {
+  const { slowRate, normalRate } = LEVEL_SPECS.B1;
+  const h = harness(three);
+  h.player.start();
+  h.advance(2000);
+  h.advance(h.player.state.gap!.ms); // into the slow play
+  h.advance(2000);
+  assert.equal(h.player.state.phase, 'gapSlow');
+  h.advance(1000);
+  h.player.pause();
+  h.player.resume();
+  assert.equal(h.player.state.gap!.endsAt - h.clock, gapMs(2000, 'medium') - 1000);
+  h.advance(gapMs(2000, 'medium') - 1000);
+  assert.equal(h.player.state.phase, 'last');
+  h.advance(500);
+  h.player.pause();
+  h.player.resume();
+  assert.equal(h.player.state.phase, 'last');
+  assert.equal(h.spoken.at(-1)!.rate, normalRate, 'the last play starts over at normal speed');
+  assert.notEqual(normalRate, slowRate);
+  h.advance(2000);
+  assert.equal(h.player.state.phase, 'gapLast');
+  h.advance(1000);
+  h.player.pause();
+  h.player.resume();
+  assert.equal(h.player.state.gap!.endsAt - h.clock, gapMs(2000, 'medium') - 1000);
+  assert.equal(h.log.filter((l) => l === 'gap gapLast').length, 1);
+});
+
+test('skipping during the last pause still counts the sentence', () => {
+  const h = harness(three);
+  h.player.start();
+  h.advance(2000);
+  h.advance(h.player.state.gap!.ms);
+  h.advance(2000);
+  h.advance(h.player.state.gap!.ms);
+  h.advance(2000);
+  assert.equal(h.player.state.phase, 'gapLast');
+  h.player.next();
+  assert.equal(h.player.state.completed, 1);
+  h.player.previous();
+  h.advance(2000);
+  h.advance(h.player.state.gap!.ms);
+  h.advance(2000);
+  h.advance(h.player.state.gap!.ms);
+  h.advance(2000);
+  assert.deepEqual([h.player.state.index, h.player.state.phase], [0, 'gapLast']);
+  assert.equal(h.player.state.completed, 1, 'the same sentence is not counted twice');
 });
 
 test('a late end from a stopped play is ignored', () => {
@@ -359,16 +441,16 @@ test('a late end from a stopped play is ignored', () => {
   player.next();
   stale();
   assert.equal(player.state.index, 1);
-  assert.equal(player.state.phase, 'slow');
+  assert.equal(player.state.phase, 'first');
 });
 
 test('if the voice never reports its end, the player carries on after a while', () => {
   const h = harness(three, { voiceMs: null });
   h.player.start();
-  h.advance(watchdogMs(three[0].fr, LEVEL_SPECS.B1.slowRate) - 1);
-  assert.equal(h.player.state.phase, 'slow');
+  h.advance(watchdogMs(three[0].fr, LEVEL_SPECS.B1.normalRate) - 1);
+  assert.equal(h.player.state.phase, 'first');
   h.advance(1);
-  assert.equal(h.player.state.phase, 'gapSlow');
+  assert.equal(h.player.state.phase, 'gapFirst');
   assert.equal(h.player.state.gap!.ms, gapMs(estimateSpeechMs(three[0].fr, LEVEL_SPECS.B1.slowRate), 'medium'), 'the wait is not taken as the sentence length');
 });
 
@@ -376,7 +458,7 @@ test('a play that ends at once (no voice) uses the estimated length for the paus
   const h = harness(three, { voiceMs: 0 });
   h.player.start();
   h.advance(0);
-  assert.equal(h.player.state.phase, 'gapSlow');
+  assert.equal(h.player.state.phase, 'gapFirst');
   assert.equal(h.player.state.gap!.ms, gapMs(estimateSpeechMs(three[0].fr, LEVEL_SPECS.B1.slowRate), 'medium'));
 });
 
