@@ -16,7 +16,7 @@ function savedMode(): Mode {
   }
 }
 
-// Shadowing has two exercises: sentences by level, played slow then normal with pauses to repeat,
+// Shadowing has two exercises: sentences by level, played normal, slow, then normal again, with pauses to repeat,
 // and the TCF dialogues, sentence by sentence with a recording. The screen opens on the one used last.
 export default function Shadowing() {
   const [mode, setMode] = useState<Mode>(savedMode);

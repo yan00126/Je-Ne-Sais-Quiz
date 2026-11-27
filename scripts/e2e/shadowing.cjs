@@ -3,7 +3,7 @@
 //   node scripts/e2e/serve.cjs /tmp/web &            (serves it on :8081 with the headers SQLite needs)
 //   node scripts/e2e/shadowing.cjs Bonbon|Cahier|Métro [out-dir]
 // It takes screenshots of each step, plays a whole A1 series and prints the rates and pauses heard:
-// every sentence must be said slow then at normal speed, with a pause after each.
+// every sentence must be said at normal speed, slow, then normal again, with a long enough pause after each.
 const { chromium } = require('playwright');
 const theme = process.argv[2] || 'Bonbon';
 const dir = process.argv[3] || 'screenshots';
@@ -47,19 +47,22 @@ const until = async (p, text, ms) => { const end = Date.now() + ms; while (Date.
   await p.screenshot({ path: out('1-setup'), fullPage: true });
   await p.getByText(/^Commencer/).click();
   await p.waitForTimeout(600);
-  await p.screenshot({ path: out('2-slow-masked') });
+  await p.screenshot({ path: out('2-first-masked') });
   await until(p, 'À vous ! Répétez', 20000);
   await p.getByText('Voir la traduction').click();
   await p.waitForTimeout(1500);
   await p.screenshot({ path: out('3-gap') });
-  await until(p, 'Écoutez · vitesse normale', 30000);
+  await until(p, 'Écoutez · lentement', 40000);
   await p.waitForTimeout(500);
-  await p.screenshot({ path: out('4-normal') });
+  await p.screenshot({ path: out('4-slow') });
+  await until(p, 'Réécoutez · vitesse normale', 60000);
+  await p.waitForTimeout(500);
+  await p.screenshot({ path: out('4b-last') });
   await p.getByLabel('Pause', { exact: true }).click();
   await p.waitForTimeout(300);
   await p.screenshot({ path: out('5-paused') });
   const b1 = await p.evaluate(() => window.__speech);
-  await p.getByText('Arrêter la série').click();
+  await p.getByLabel('Arrêter la série').click();
   await p.waitForTimeout(500);
   // A whole series, start to finish, at A1 with short pauses and the text always visible.
   await p.getByText('Débutant', { exact: true }).click();
@@ -70,7 +73,7 @@ const until = async (p, text, ms) => { const end = Date.now() + ms; while (Date.
   await p.getByText('OK', { exact: true }).click();
   await p.evaluate(() => { window.__speech = []; });
   await p.getByText(/^Commencer/).click();
-  await until(p, /^Bravo/, 240000);
+  await until(p, /^Bravo/, 600000);
   await p.waitForTimeout(500);
   await p.screenshot({ path: out('6-finished'), fullPage: true });
   await p.getByText('Changer de niveau').click();
@@ -80,10 +83,12 @@ const until = async (p, text, ms) => { const end = Date.now() + ms; while (Date.
   await p.screenshot({ path: out('7-dialogues') });
   const a1 = await p.evaluate(() => window.__speech.filter((x) => !x.cancel));
   const report = { b1rates: b1.filter(x=>!x.cancel).map(x => x.rate), a1count: a1.length, a1rates: [...new Set(a1.map(x => x.rate))],
-    pairs: a1.every((x, i) => i % 2 === 0 ? x.rate === 0.6 && a1[i+1]?.text === x.text : x.rate === 0.8),
-    gaps: a1.slice(1).map((x, i) => x.t - (a1[i].t + a1[i].ms)) };
+    triples: a1.every((x, i) => x.rate === [0.8, 0.6, 0.8][i % 3] && x.text === a1[i - (i % 3)].text),
+    // Each pause must last at least 1.5× the slow play (the « short » setting) plus a margin.
+    gaps: a1.slice(1).map((x, i) => x.t - (a1[i].t + a1[i].ms)),
+    minGaps: a1.slice(1).map((x, i) => Math.round(Math.max(4000, a1[i - (i % 3) + 1].ms * 1.5 + 1500))) };
   console.log(theme, JSON.stringify(report));
-  const ok = report.pairs && report.a1count === 16 && report.gaps.every((g) => g >= 2400);
+  const ok = report.triples && report.a1count === 24 && report.gaps.every((g, i) => g >= report.minGaps[i] - 100);
   console.log(ok ? 'PASS' : 'FAIL');
   if (!ok) process.exitCode = 1;
   await b.close();

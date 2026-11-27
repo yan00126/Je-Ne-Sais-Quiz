@@ -38,6 +38,8 @@ const SCENARIOS = [
   { id: 'writing-change-task', route: '/practice/writing', keyboard: true, steps: [{ re: '^Commencer \\(' }, { fill: 'Salut Marc.' }, { text: 'Tâche 2', exact: true, wait: 900 }], expect: ['Garder mon texte', 'Changer de tâche'] },
   { id: 'speaking', route: '/practice/speaking', steps: [{ text: 'Tâche 3', exact: true }], expect: ['● Enregistrer'] },
   { id: 'shadowing-setup', route: '/practice/shadowing', steps: [{ text: 'Par niveau', exact: true }], expect: [/^Commencer · /] },
+  { id: 'shadowing-playing', route: '/practice/shadowing', steps: [{ text: 'Par niveau', exact: true }, { re: '^Commencer · ', wait: 1500 }], expect: [{ label: 'Pause' }, { label: 'Suivante' }, { label: 'Arrêter la série' }] },
+  { id: 'shadowing-playing-b2', route: '/practice/shadowing', steps: [{ text: 'Par niveau', exact: true }, { text: 'Avancé', exact: true }, { re: '^Commencer · ', wait: 1500 }, { text: 'Voir la traduction', exact: true }], expect: [{ label: 'Pause' }, { label: 'Suivante' }, { label: 'Arrêter la série' }] },
   { id: 'shadowing-options', route: '/practice/shadowing', steps: [{ text: 'Par niveau', exact: true }, { label: 'Options de la série', wait: 900 }], expect: ['Longue', 'Masqué', 'OK'] },
   { id: 'dialogue-hints', route: '/practice/dialogue', steps: [{ re: 'Indice$' }, { re: 'Indice$' }], expect: ['● Répondre', /Indice$/] },
   { id: 'progress', route: '/progress', expect: [{ label: 'Réglages' }, /^(01 )?Mes erreurs/] },

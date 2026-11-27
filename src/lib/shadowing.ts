@@ -1,6 +1,6 @@
 // Shadowing by level: you pick a level, get a series of sentences written for it, and each
-// sentence plays twice, slow then at the level's normal speed, with a pause after each play for you
-// to repeat out loud. The higher the level, the longer the sentences and the faster both speeds.
+// sentence plays three times, at the level's normal speed, then slow, then at normal speed again,
+// with a pause after each play for you to repeat out loud. The higher the level, the longer the sentences and the faster both speeds.
 //
 // Everything here is plain logic with injected speech and timers, so it is tested without a phone.
 
@@ -23,22 +23,22 @@ export const LEVEL_SPECS: Record<ShadowLevel, LevelSpec> = {
   B2: { level: 'B2', name: 'Avancé', detail: 'Phrases longues et argumentées, comme au TCF', words: [16, 30], slowRate: 0.85, normalRate: 1.1 },
 };
 
-// How much time you get to repeat, as a multiple of how long the sentence just took to say.
+// How much time you get to repeat, as a multiple of how long the sentence takes to say slowly.
 export type PauseLength = 'short' | 'medium' | 'long';
 export const PAUSES: Record<PauseLength, { label: string; factor: number }> = {
-  short: { label: 'Courte', factor: 1 },
-  medium: { label: 'Moyenne', factor: 1.4 },
-  long: { label: 'Longue', factor: 1.9 },
+  short: { label: 'Courte', factor: 1.5 },
+  medium: { label: 'Moyenne', factor: 2 },
+  long: { label: 'Longue', factor: 2.6 },
 };
 export const PAUSE_ORDER: PauseLength[] = ['short', 'medium', 'long'];
 
-// When the sentence text is on screen: always, only once you have heard it slowly, or never.
+// When the sentence text is on screen: always, only once you have heard it once, or never.
 export type TextMode = 'always' | 'after' | 'hidden';
 export const TEXT_MODES: Record<TextMode, string> = { always: 'Visible', after: 'Après', hidden: 'Masqué' };
 // What each text setting does, shown under the choice.
 export const TEXT_HINTS: Record<TextMode, string> = {
   always: 'Le texte reste affiché pendant toute la phrase.',
-  after: 'Le texte s’affiche après la lecture lente : écoutez d’abord.',
+  after: 'Le texte s’affiche après la première écoute : écoutez d’abord.',
   hidden: 'Sans texte, comme à l’examen : seulement à l’oreille.',
 };
 export const TEXT_ORDER: TextMode[] = ['always', 'after', 'hidden'];
@@ -62,12 +62,13 @@ export function estimateSpeechMs(text: string, rate: number) {
   return Math.round(400 + (letters / 14 / rate) * 1000);
 }
 
-export const MIN_GAP_MS = 2500;
-export const MAX_GAP_MS = 20000;
+export const MIN_GAP_MS = 4000;
+export const MAX_GAP_MS = 30000;
 
-// The pause after a play: long enough to say the sentence yourself, a bit slower than the voice.
+// The pause after a play: time to take it in, then say the whole sentence yourself at your own
+// pace, which is slower than the voice. `spokenMs` is how long the slow play takes.
 export function gapMs(spokenMs: number, pause: PauseLength) {
-  const ms = Math.round(spokenMs * PAUSES[pause].factor + 800);
+  const ms = Math.round(spokenMs * PAUSES[pause].factor + 1500);
   return Math.min(MAX_GAP_MS, Math.max(MIN_GAP_MS, ms));
 }
 
@@ -102,17 +103,23 @@ export function markSeen(seen: SeenHistory, ids: string[], now: number): SeenHis
 export const sessionCounts = (completed: number, total: number) => total > 0 && completed >= Math.ceil(total * COUNTS_AT);
 
 // ——— The player ———
-// Per sentence: slow → pause → normal → pause, then on to the next sentence by itself.
+// Per sentence: normal → pause → slow → pause → normal → pause, then on to the next by itself.
 
-export type Phase = 'slow' | 'gapSlow' | 'normal' | 'gapNormal';
-export const PHASES: Phase[] = ['slow', 'gapSlow', 'normal', 'gapNormal'];
+export type Play = 'first' | 'slow' | 'last';
+export type Phase = Play | 'gapFirst' | 'gapSlow' | 'gapLast';
+export const PHASES: Phase[] = ['first', 'gapFirst', 'slow', 'gapSlow', 'last', 'gapLast'];
+const GAP_OF: Record<Play, Phase> = { first: 'gapFirst', slow: 'gapSlow', last: 'gapLast' };
+const PLAY_OF: Partial<Record<Phase, Play>> = { gapFirst: 'first', gapSlow: 'slow', gapLast: 'last' };
+const NEXT_PLAY: Partial<Record<Phase, Play>> = { gapFirst: 'slow', gapSlow: 'last' };
+export const isPlay = (p: Phase): p is Play => p === 'first' || p === 'slow' || p === 'last';
+export const isGap = (p: Phase) => !isPlay(p);
 
 export type PlayerState = {
   index: number; // current sentence
   phase: Phase;
   status: 'playing' | 'paused' | 'finished';
   gap: { ms: number; endsAt: number } | null; // while in a pause: its length and when it ends
-  completed: number; // sentences played through to the end of their last pause
+  completed: number; // sentences played through to their last pause
 };
 
 export type PlayerDeps = {
@@ -137,11 +144,11 @@ const MIN_HEARD_MS = 400;
 export function createPlayer(options: PlayerOptions, deps: PlayerDeps) {
   const spec = LEVEL_SPECS[options.level];
   const { sentences } = options;
-  let state: PlayerState = { index: 0, phase: 'slow', status: 'paused', gap: null, completed: 0 };
+  let state: PlayerState = { index: 0, phase: 'first', status: 'paused', gap: null, completed: 0 };
   let token = 0; // bumped on every phase change so late callbacks from an earlier phase are ignored
   let timer: unknown = null;
   let spokeAt = 0;
-  let spoken: Partial<Record<'slow' | 'normal', number>> = {};
+  let spoken: Partial<Record<Play, number>> = {};
   let remainingGap: number | null = null; // a pause interrupted by « pause », resumed for what was left
   let doneCount = 0;
   const finished = new Set<number>();
@@ -158,15 +165,22 @@ export function createPlayer(options: PlayerOptions, deps: PlayerDeps) {
     deps.stop();
   }
 
-  function rateOf(phase: 'slow' | 'normal') {
-    return phase === 'slow' ? spec.slowRate : spec.normalRate;
+  function rateOf(play: Play) {
+    return play === 'slow' ? spec.slowRate : spec.normalRate;
+  }
+
+  // What a pause is sized on: how long the slow play took (you repeat at about that pace), or,
+  // before it has played, its estimate, never less than the play you just heard.
+  function repeatBase(after: Play) {
+    const text = sentences[state.index].fr;
+    return spoken.slow ?? Math.max(spoken[after] ?? 0, estimateSpeechMs(text, spec.slowRate));
   }
 
   function enter(phase: Phase, gapLeft?: number) {
     clear();
     const my = token;
     const sentence = sentences[state.index];
-    if (phase === 'slow' || phase === 'normal') {
+    if (isPlay(phase)) {
       const rate = rateOf(phase);
       emit({ phase, status: 'playing', gap: null });
       spokeAt = deps.now();
@@ -177,29 +191,28 @@ export function createPlayer(options: PlayerOptions, deps: PlayerDeps) {
         ended = true;
         const took = deps.now() - spokeAt;
         spoken[phase] = !timedOut && took >= MIN_HEARD_MS ? took : estimateSpeechMs(sentence.fr, rate);
-        enter(phase === 'slow' ? 'gapSlow' : 'gapNormal');
+        enter(GAP_OF[phase]);
       };
       timer = deps.setTimer(() => done(true), watchdogMs(sentence.fr, rate));
       deps.speak(sentence.fr, rate, () => done());
       return;
     }
-    const from = phase === 'gapSlow' ? 'slow' : 'normal';
-    const full = gapMs(spoken[from] ?? estimateSpeechMs(sentence.fr, rateOf(from)), options.pause);
+    const full = gapMs(repeatBase(PLAY_OF[phase]!), options.pause);
     const ms = gapLeft ?? full;
-    emit({ phase, status: 'playing', gap: { ms: full, endsAt: deps.now() + ms } });
+    // Heard all three plays and started the last repeat: the sentence counts as practised.
+    const counts = phase === 'gapLast' && !finished.has(state.index);
+    if (counts) {
+      finished.add(state.index);
+      doneCount++;
+    }
+    emit({ phase, status: 'playing', gap: { ms: full, endsAt: deps.now() + ms }, ...(counts && { completed: doneCount }) });
     if (gapLeft === undefined) deps.onGapStart?.(phase);
     timer = deps.setTimer(() => {
       if (my !== token) return;
       timer = null;
-      if (phase === 'gapSlow') enter('normal');
-      else {
-        if (!finished.has(state.index)) {
-          finished.add(state.index);
-          doneCount++;
-        }
-        emit({ completed: doneCount });
-        advance();
-      }
+      const next = NEXT_PLAY[phase];
+      if (next) enter(next);
+      else advance();
     }, ms);
   }
 
@@ -207,7 +220,7 @@ export function createPlayer(options: PlayerOptions, deps: PlayerDeps) {
     spoken = {};
     remainingGap = null;
     emit({ index });
-    enter('slow');
+    enter('first');
   }
 
   function advance() {
@@ -238,14 +251,14 @@ export function createPlayer(options: PlayerOptions, deps: PlayerDeps) {
       if (state.status !== 'paused') return;
       const left = remainingGap;
       remainingGap = null;
-      if ((state.phase === 'gapSlow' || state.phase === 'gapNormal') && left !== null) enter(state.phase, left);
-      else enter(state.phase === 'gapSlow' ? 'slow' : state.phase === 'gapNormal' ? 'normal' : state.phase);
+      if (isGap(state.phase) && left !== null) enter(state.phase, left);
+      else enter(PLAY_OF[state.phase] ?? state.phase);
     },
     toggle() {
       if (state.status === 'playing') this.pause();
       else if (state.status === 'paused') this.resume();
     },
-    // Hear the current sentence again from the slow play.
+    // Hear the current sentence again from its first play.
     replay() {
       if (state.status === 'finished') return;
       goTo(state.index);
@@ -267,8 +280,8 @@ export function createPlayer(options: PlayerOptions, deps: PlayerDeps) {
 export type Player = ReturnType<typeof createPlayer>;
 
 // Whether the sentence text is on screen, given the setting and how far the sentence has got.
-export function textVisible(mode: TextMode, phase: Phase, heardSlow: boolean) {
+export function textVisible(mode: TextMode, phase: Phase, heardOnce: boolean) {
   if (mode === 'always') return true;
   if (mode === 'hidden') return false;
-  return heardSlow || phase !== 'slow';
+  return heardOnce || phase !== 'first';
 }
