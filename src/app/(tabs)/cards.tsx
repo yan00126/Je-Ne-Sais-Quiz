@@ -12,7 +12,8 @@ import { clozeReveal, exerciseFor, gradeAnswer, hint, makeCloze, maxHints, phras
 import { matchItems, type MatchItem } from '../../lib/matching';
 import { buildTiles, checkOrder, type Tile } from '../../lib/wordOrder';
 import type { Outcome } from '../../lib/feedback';
-import { getSeenWordIds, getStudyQueue, logAttempt, saveReview, type ReviewCard } from '../../lib/db';
+import { getSeenWordIds, getStudyQueue, logAttempt, logWordMistake, saveReview, type ReviewCard } from '../../lib/db';
+import { classifyAnswer, classifyMiss, type Miss } from '../../lib/wordMistakes';
 import { markActive } from '../../lib/activity';
 import { play } from '../../lib/audio';
 import { afterReview, mergeStudyQueue, studyQueue } from '../../lib/cardQueue';
@@ -37,6 +38,8 @@ export default function Cards() {
   const [error, setError] = useState<string | null>(null);
   const [seen, setSeen] = useState<ReadonlySet<string>>(new Set());
   const grading = useRef(false);
+  // The wrong answer given for the card on screen, saved once its review is saved (see miss and grade).
+  const pendingMiss = useRef<Miss | null>(null);
   // Web only, for the fold check: /cards?exercise=build&card=v087 shows that word (else the current card)
   // as that kind of question (build, match, choice or clozeChoice). The iPhone app ignores these.
   const params = useLocalSearchParams<{ exercise?: string; card?: string }>();
@@ -97,6 +100,10 @@ export default function Cards() {
       const next = review(card, g, new Date());
       await saveReview(db, next, card.reps === 0);
       await logAttempt(db, 'vocab', card.id, g === Rating.Again ? 0 : 1, hold ? 2 : 1);
+      // After the save, so a retry or a double tap doesn't save the mistake twice.
+      const missed = pendingMiss.current;
+      pendingMiss.current = null;
+      if (missed) saveMiss(missed);
       setReviewed((n) => n + 1);
       // A wrong answer starts the word over with recognition questions (see exerciseFor).
       const history = { streak: g === Rating.Again ? 0 : hold ? card.streak : card.streak + 1, missed: card.missed || g === Rating.Again };
@@ -111,6 +118,22 @@ export default function Cards() {
     }
   }
 
+  // What went wrong, for « Mes points faibles ». The exercise reports it just before grading; it is saved
+  // with the review. A failure here never blocks the card.
+  function miss(m: Miss) {
+    pendingMiss.current = m;
+  }
+  function saveMiss(m: Miss) {
+    if (!card) return;
+    try {
+      const c = classifyMiss(card.fr, m, kind, STARTER_VOCAB, card.id);
+      if (!c) return;
+      logWordMistake(db, { cardId: card.id, exercise: kind, expected: m.expected ?? card.fr, given: m.given, type: c.type, confusedWith: c.confusedWith, ruleId: c.ruleId }).catch(() => {});
+    } catch {
+      // Not worth interrupting the session for.
+    }
+  }
+
   const cloze = makeCloze(card.fr, card.example);
   const kind: ExerciseKind = preview ?? exerciseFor(card, cloze !== null, phraseKind(card.fr));
   const key = `${card.id}-${card.reps}-${queue.length}`;
@@ -120,13 +143,13 @@ export default function Cards() {
       <Body muted>{queue.length} {queue.length === 1 ? 'carte restante' : 'cartes restantes'}</Body>
       {error && <Body>{error}</Body>}
       {kind === 'choice' || kind === 'clozeChoice' ? (
-        <ChoiceExercise key={key} card={card} cloze={kind === 'clozeChoice' ? cloze : null} isNew={card.reps === 0} onGrade={grade} saving={saving} />
+        <ChoiceExercise key={key} card={card} cloze={kind === 'clozeChoice' ? cloze : null} isNew={card.reps === 0} onGrade={grade} onMiss={miss} saving={saving} />
       ) : kind === 'match' ? (
-        <MatchExercise key={key} card={card} seen={seen} onGrade={grade} saving={saving} />
+        <MatchExercise key={key} card={card} seen={seen} onGrade={grade} onMiss={miss} saving={saving} />
       ) : kind === 'build' ? (
-        <BuildExercise key={key} card={card} onGrade={grade} saving={saving} />
+        <BuildExercise key={key} card={card} onGrade={grade} onMiss={miss} saving={saving} />
       ) : (
-        <TypedExercise key={key} card={card} kind={kind} cloze={cloze} onGrade={grade} saving={saving} />
+        <TypedExercise key={key} card={card} kind={kind} cloze={cloze} onGrade={grade} onMiss={miss} saving={saving} />
       )}
     </Screen>
   );
@@ -190,12 +213,14 @@ function TypedExercise({
   kind,
   cloze,
   onGrade,
+  onMiss,
   saving,
 }: {
   card: ReviewCard;
   kind: TypedKind;
   cloze: { sentence: string; answer: string } | null;
   onGrade: (g: Grade) => void;
+  onMiss: (m: Miss) => void;
   saving: boolean;
 }) {
   const t = useTheme();
@@ -227,6 +252,10 @@ function TypedExercise({
     setVerdict('wrong');
     setTimeout(() => sayWord(card), 450);
   }
+
+  // Accepted (the article is optional), but with the article of the other gender: "un augmentation".
+  // Said in the banner, and saved as a gender mistake.
+  const genderSlip = verdict === 'correct' && !gaveUp && classifyAnswer(expected, typed, [])?.type === 'gender';
 
   // Not knowing is an "Again"; needing a hint makes a right answer count as "Hard" instead of "Good".
   function grade(): Grade {
@@ -301,9 +330,25 @@ function TypedExercise({
           <ResultBanner
             outcome={OUTCOME[verdict]}
             title={gaveUp ? 'À retenir' : TITLES[verdict]}
-            detail={gaveUp ? undefined : verdict === 'accents' ? 'Attention aux accents' : verdict === 'correct' && hints > 0 ? 'Avec un indice' : undefined}
+            detail={
+              gaveUp
+                ? undefined
+                : verdict === 'accents'
+                  ? 'Attention aux accents'
+                  : genderSlip
+                    ? `Attention au genre : ${reveal.entry ?? card.fr}`
+                    : verdict === 'correct' && hints > 0
+                      ? 'Avec un indice'
+                      : undefined
+            }
           >
-            <Button title="Continuer" disabled={saving} color={outcomeColor(t, OUTCOME[verdict])} onPress={() => onGrade(grade())} />
+            <Button title="Continuer" disabled={saving} color={outcomeColor(t, OUTCOME[verdict])} onPress={() => {
+                // Checked even when right: an accepted answer can still have the article of the other gender.
+                // A synonym (button below) is never saved as a mistake.
+                onMiss({ given: gaveUp ? '' : typed, expected });
+                onGrade(grade());
+              }}
+            />
             {verdict !== 'correct' && !gaveUp && (
               <Button title="J'avais raison (synonyme)" disabled={saving} variant="outline" color={t.colors.muted} onPress={() => onGrade(Rating.Good)} />
             )}
@@ -324,12 +369,14 @@ function ChoiceExercise({
   cloze,
   isNew,
   onGrade,
+  onMiss,
   saving,
 }: {
   card: ReviewCard;
   cloze: { sentence: string; answer: string } | null;
   isNew: boolean;
   onGrade: (g: Grade) => void;
+  onMiss: (m: Miss) => void;
   saving: boolean;
 }) {
   const t = useTheme();
@@ -392,7 +439,12 @@ function ChoiceExercise({
               title={right ? 'Correct !' : picked === 'unknown' ? 'À retenir' : 'Pas tout à fait'}
               detail={right || picked === 'unknown' ? undefined : `La réponse : ${options.find((o) => o.correct)!.text}`}
             >
-              <Button title="Continuer" disabled={saving} color={outcomeColor(t, outcome)} onPress={() => onGrade(right ? (isNew ? Rating.Hard : Rating.Good) : Rating.Again)} />
+              <Button title="Continuer" disabled={saving} color={outcomeColor(t, outcome)} onPress={() => {
+                  // A guess on a word never seen before isn't a mistake worth analysing.
+                  if (!right && !isNew) onMiss(picked === 'unknown' || picked === null ? { given: '' } : { given: picked.text, expected: cloze?.answer, confusedWith: picked.id });
+                  onGrade(right ? (isNew ? Rating.Hard : Rating.Good) : Rating.Again);
+                }}
+              />
             </ResultBanner>
           </>
         )}
@@ -403,7 +455,7 @@ function ChoiceExercise({
 
 // Long phrases: tap the words in order to build the phrase from its meaning. Tapping a placed word
 // sends it back. A couple of spare words from the same theme make the last pick more than a formality.
-function BuildExercise({ card, onGrade, saving }: { card: ReviewCard; onGrade: (g: Grade) => void; saving: boolean }) {
+function BuildExercise({ card, onGrade, onMiss, saving }: { card: ReviewCard; onGrade: (g: Grade) => void; onMiss: (m: Miss) => void; saving: boolean }) {
   const t = useTheme();
   const styles = useStyles();
   const tiles = useMemo(() => buildTiles(card, POOL, `${card.id}:${card.reps}:${card.lapses}`), [card.id, card.reps, card.lapses]);
@@ -464,7 +516,11 @@ function BuildExercise({ card, onGrade, saving }: { card: ReviewCard; onGrade: (
           </>
         ) : (
           <ResultBanner outcome={outcome} title={result === 'correct' ? 'Correct !' : result === 'unknown' ? 'À retenir' : 'Pas tout à fait'}>
-            <Button title="Continuer" disabled={saving} color={outcomeColor(t, outcome)} onPress={() => onGrade(result === 'correct' ? Rating.Good : Rating.Again)} />
+            <Button title="Continuer" disabled={saving} color={outcomeColor(t, outcome)} onPress={() => {
+                if (result !== 'correct') onMiss({ given: result === 'unknown' ? '' : picked.map((p) => p.text).join(' ') });
+                onGrade(result === 'correct' ? Rating.Good : Rating.Again);
+              }}
+            />
           </ResultBanner>
         )}
       </Footer>
@@ -477,7 +533,19 @@ function BuildExercise({ card, onGrade, saving }: { card: ReviewCard; onGrade: (
 // never part of a wrong pair. The three other words are practice.
 // A word left for the very last pair is matched by elimination: that counts as right but "Hard", and the
 // word stays at this step. Giving up after the word was already paired keeps that pair.
-function MatchExercise({ card, seen, onGrade, saving }: { card: ReviewCard; seen: ReadonlySet<string>; onGrade: (g: Grade, hold?: boolean) => void; saving: boolean }) {
+function MatchExercise({
+  card,
+  seen,
+  onGrade,
+  onMiss,
+  saving,
+}: {
+  card: ReviewCard;
+  seen: ReadonlySet<string>;
+  onGrade: (g: Grade, hold?: boolean) => void;
+  onMiss: (m: Miss) => void;
+  saving: boolean;
+}) {
   const t = useTheme();
   const styles = useStyles();
   // Fixed while the question is on screen, even when the words already met change.
@@ -487,6 +555,8 @@ function MatchExercise({ card, seen, onGrade, saving }: { card: ReviewCard; seen
   const [matched, setMatched] = useState<string[]>([]);
   const [wrong, setWrong] = useState<{ fr: string; en: string } | null>(null);
   const [missed, setMissed] = useState(false);
+  // The first word the studied one was wrongly paired with, saved as the word it was confused with.
+  const [mixedWith, setMixedWith] = useState<string | null>(null);
   const [gaveUp, setGaveUp] = useState(false);
   const answered = gaveUp || matched.length === left.length;
   const targetAt = matched.indexOf(card.id);
@@ -512,7 +582,10 @@ function MatchExercise({ card, seen, onGrade, saving }: { card: ReviewCard; seen
       // Let the last pair turn green before the word is read out.
       if (done.length === left.length) timers.current.push(setTimeout(() => sayWord(card), 450));
     } else {
-      if (f === card.id || e === card.id) setMissed(true);
+      if (f === card.id || e === card.id) {
+        setMissed(true);
+        setMixedWith((w) => w ?? (f === card.id ? e : f));
+      }
       setWrong({ fr: f, en: e });
       setFr(null);
       setEn(null);
@@ -597,7 +670,14 @@ function MatchExercise({ card, seen, onGrade, saving }: { card: ReviewCard; seen
               title="Continuer"
               disabled={saving}
               color={outcomeColor(t, outcome)}
-              onPress={() => (byElimination ? onGrade(Rating.Hard, true) : onGrade(passed ? Rating.Good : Rating.Again))}
+              onPress={() => {
+                if (!passed) {
+                  const other = left.find((i) => i.id === mixedWith);
+                  onMiss(other ? { given: other.fr, confusedWith: other.id } : { given: '' });
+                }
+                if (byElimination) onGrade(Rating.Hard, true);
+                else onGrade(passed ? Rating.Good : Rating.Again);
+              }}
             />
           </ResultBanner>
         )}

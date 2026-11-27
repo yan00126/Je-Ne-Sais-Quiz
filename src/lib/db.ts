@@ -5,6 +5,7 @@ import { answerHistory, type Answer, type History } from './answer';
 import { currentLevel, type Attempt, type Level, type LevelState } from './level';
 import { dayKey, newWordsCutoff, wordTiers, type Session, type WordTiers } from './stats';
 import type { NumberAnswer } from './numberDrill';
+import type { ErrorType, WordMistake } from './wordMistakes';
 import type { CategoryId } from './numbers';
 
 export const DB_NAME = 'jenesaisquiz.db';
@@ -144,6 +145,26 @@ export async function migrate(db: SQLiteDatabase) {
       PRAGMA user_version = 7;
     `);
   }
+  if (user_version < 8) {
+    // Wrong vocabulary answers with what was typed or picked, so the patterns behind them can be found
+    // (see src/lib/wordMistakes.ts). given: the text typed, or the option picked. confused_with: the id of
+    // the other word it was mixed up with. rule_id: the grammar card it points to (src/data/grammar).
+    await db.execAsync(`
+      CREATE TABLE IF NOT EXISTS word_mistakes (
+        id INTEGER PRIMARY KEY AUTOINCREMENT,
+        card_id TEXT NOT NULL,
+        exercise TEXT NOT NULL,
+        expected TEXT NOT NULL,
+        given TEXT NOT NULL,
+        error_type TEXT NOT NULL,
+        confused_with TEXT,
+        rule_id TEXT,
+        created_at INTEGER NOT NULL
+      );
+      CREATE INDEX IF NOT EXISTS word_mistakes_created ON word_mistakes (created_at);
+      PRAGMA user_version = 8;
+    `);
+  }
   await seedCards(db);
 }
 
@@ -229,6 +250,31 @@ export async function getOpenMistakes(db: SQLiteDatabase): Promise<Mistake[]> {
 
 export async function markMistakeReviewed(db: SQLiteDatabase, id: number) {
   await db.runAsync('UPDATE mistakes SET reviewed_at = ? WHERE id = ?', Date.now(), id);
+}
+
+export type WordMistakeInput = {
+  cardId: string;
+  exercise: string;
+  expected: string;
+  given: string;
+  type: ErrorType;
+  confusedWith: string | null;
+  ruleId: string | null;
+};
+
+export async function logWordMistake(db: SQLiteDatabase, m: WordMistakeInput) {
+  await db.runAsync(
+    'INSERT INTO word_mistakes (card_id, exercise, expected, given, error_type, confused_with, rule_id, created_at) VALUES (?, ?, ?, ?, ?, ?, ?, ?)',
+    m.cardId, m.exercise, m.expected, m.given, m.type, m.confusedWith, m.ruleId, Date.now(),
+  );
+}
+
+// Wrong vocabulary answers from the last `days` days, newest first.
+export async function getWordMistakes(db: SQLiteDatabase, days = 30): Promise<WordMistake[]> {
+  return db.getAllAsync<WordMistake>(
+    'SELECT card_id, error_type, confused_with, rule_id, created_at FROM word_mistakes WHERE created_at >= ? ORDER BY created_at DESC',
+    Date.now() - days * 86_400_000,
+  );
 }
 
 export async function newCardsLeftToday(db: SQLiteDatabase) {
